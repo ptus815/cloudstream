@@ -16,13 +16,13 @@ import com.lagradost.cloudstream3.utils.newExtractorLink
 
 
 class Stream : Filesim() {
-    override var mainUrl = "https://55k.io"
+    override var mainUrl = "https://44k.io"
 }
 
 
 open class VID : ExtractorApi() {
     override var name = "VID Xtapes"
-    override var mainUrl = "https://vid.xtapes.to"
+    override var mainUrl = "https://gay.xtapes.in"
     override val requiresReferer = false
 
     override suspend fun getUrl(url: String, referer: String?): List<ExtractorLink>? {
