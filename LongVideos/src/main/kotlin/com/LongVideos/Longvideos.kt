@@ -1,4 +1,4 @@
-package com.megix
+package com.LongVideos
 
 import org.jsoup.nodes.Element
 import com.lagradost.cloudstream3.*
@@ -77,7 +77,7 @@ class Longvideos : MainAPI() {
         val description = document.select("meta[property=og:description]").attr("content")
 
 
-        return newMovieLoadResponse(title, url, TvType.NSFW, url) {
+        return newMovieLoadResponse(title, url, TvType.Movie, url) {
             this.posterUrl = poster
             this.plot      = description
         }
