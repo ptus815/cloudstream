@@ -18,7 +18,7 @@
   <a href="https://github.com/owencz1998/xxx/issues/">
     <img src="https://img.shields.io/github/issues/owencz1998/xxx" alt="open issues" />
   </a>
-  <a 
+## This repo isn't marked as XXX on cloudstream so it can use continue watching!!!
   <a href="https://github.com/AmineSoukara/EgyBest-API">
     <img src="https://hits.seeyoufarm.com/api/count/incr/badge.svg?url=https%3A%2F%2Fgithub.com%2Fhexated%2Fxxx&count_bg=%23FF0000&title_bg=%23555555&icon=tinder.svg&icon_color=%23FF0000&title=Hits&edge_flat=false" alt="hits" />
   </a>
