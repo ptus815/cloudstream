@@ -17,15 +17,15 @@ class Eporner : MainAPI() {
     override val vpnStatus            = VPNStatus.MightBeNeeded
 
     override val mainPage = mainPageOf(
-            "/cat/gay/" to "Most recent",
-            "/cat/gay/SORT-top-rated" to "Top Rated",
-            "/cat/gay/SORT-most-viewed" to "Most Viewed",
-            "/cat/gay/SORT-top-weekly" to "Weekly Top",
-            "/cat/gay/SORT-top-monthly" to "Monthly Top",
-            "/cat/gay/SORT-longest" to "Longest",
-            "/cat/gay/amateur" to "Amateur",
-            "/cat/gay/anal" to "Anal",
-            "/cat/gay/asian" to "Asian"
+            "cat/gay/" to "Most recent",
+            "cat/gay/SORT-top-rated" to "Top Rated",
+            "cat/gay/SORT-most-viewed" to "Most Viewed",
+            "cat/gay/SORT-top-weekly" to "Weekly Top",
+            "cat/gay/SORT-top-monthly" to "Monthly Top",
+            "cat/gay/SORT-longest" to "Longest",
+            "cat/gay/amateur" to "Amateur",
+            "cat/gay/anal" to "Anal",
+            "cat/gay/asian" to "Asian"
         )
 
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
