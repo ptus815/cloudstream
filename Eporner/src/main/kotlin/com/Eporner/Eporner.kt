@@ -7,7 +7,7 @@ import org.json.JSONObject
 import java.math.BigInteger
 
 class Eporner : MainAPI() {
-    override var mainUrl              = "https://www.eporner.com/cat/gay/"
+    override var mainUrl              = "https://www.eporner.com/cat/gay"
     override var name                 = "Eporner"
     override val hasMainPage          = true
     override var lang                 = "en"
