@@ -7,7 +7,7 @@ import org.json.JSONObject
 import java.math.BigInteger
 
 class Eporner : MainAPI() {
-    override var mainUrl              = "https://www.eporner.com/cat/gay"
+    override var mainUrl              = "https://www.eporner.com"
     override var name                 = "Eporner"
     override val hasMainPage          = true
     override var lang                 = "en"
@@ -17,15 +17,15 @@ class Eporner : MainAPI() {
     override val vpnStatus            = VPNStatus.MightBeNeeded
 
     override val mainPage = mainPageOf(
-            "" to "Most recent",
-            "SORT-top-rated" to "Top Rated",
-            "SORT-most-viewed" to "Most Viewed",
-            "SORT-top-weekly" to "Weekly Top",
-            "SORT-top-monthly" to "Monthly Top",
-            "SORT-longest" to "Longest",
-            "amateur" to "Amateur",
-            "anal" to "Anal",
-            "asian" to "Asian"
+            "/cat/gay/" to "Most recent",
+            "/cat/gay/SORT-top-rated" to "Top Rated",
+            "/cat/gay/SORT-most-viewed" to "Most Viewed",
+            "/cat/gay/SORT-top-weekly" to "Weekly Top",
+            "/cat/gay/SORT-top-monthly" to "Monthly Top",
+            "/cat/gay/SORT-longest" to "Longest",
+            "/cat/gay/amateur" to "Amateur",
+            "/cat/gay/anal" to "Anal",
+            "/cat/gay/asian" to "Asian"
         )
 
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
