@@ -6,7 +6,7 @@ import com.lagradost.cloudstream3.*
 import com.lagradost.cloudstream3.utils.*
 
 class Xtapes : MainAPI() {
-    override var mainUrl              = "https://xtapes.to"
+    override var mainUrl              = "https://g.xtapes.in"
     override var name                 = "Xtapes"
     override val hasMainPage          = true
     override var lang                 = "en"
@@ -15,10 +15,10 @@ class Xtapes : MainAPI() {
     override val vpnStatus            = VPNStatus.MightBeNeeded
 
     override val mainPage = mainPageOf(
-        "porn-movies-hd" to "Latest",
-        "80026" to "BangBros",
-        "53177" to "Brazzers",
-        "61802" to "Naughty America",
+        "" to "Latest",
+        "category/amateur-gay-porn" to "Amateur",
+        "category/asian-guys-porn" to "Asian",
+        "category/bareback-no-condom-porn-282612/" to "Bareback",
         "56050" to "Reality Kings",
         "05415" to "Play Ground",
         "11075" to "Evil Angle",
