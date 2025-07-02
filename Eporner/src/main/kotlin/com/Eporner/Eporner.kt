@@ -21,7 +21,7 @@ class Eporner : MainAPI() {
             "SORT-top-rated" to "Top Rated",
             "SORT-most-viewed" to "Most Viewed",
             "SORT-top-weekly" to "Weekly Top",
-            "SORT-top-monthly" to "Monthly Top"
+            "SORT-top-monthly" to "Monthly Top",
             "SORT-longest" to "Longest",
             "amateur" to "Amateur",
             "anal" to "Anal",
