@@ -29,7 +29,7 @@ class MixDropAG : MixDrop(){
     override var mainUrl = "https://mixdrop.ag"
 }
 
-class vflixtop : vflix(){
+class vflixtop : Vflix(){
     override var mainUrl = "https://vflix.top"
 }
 
