@@ -17,7 +17,7 @@ import java.util.Base64
 import android.util.Log
 import com.lagradost.cloudstream3.extractors.MixDrop
 import com.lagradost.cloudstream3.extractors.Vflix
-import com.lagradost.cloudstream3.extractors.3flix
+import com.lagradost.cloudstream3.extractors.3Flix
 import com.lagradost.cloudstream3.utils.JsUnpacker
 import com.lagradost.cloudstream3.utils.newExtractorLink
 
@@ -33,7 +33,7 @@ class vflixtop : Vflix(){
     override var mainUrl = "https://vflix.top"
 }
 
-class 3flixtop : 3flix(){
+class 3flixtop : 3Flix(){
     override var mainUrl = "https://3flix.top"
 }
 
