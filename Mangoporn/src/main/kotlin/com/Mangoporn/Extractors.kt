@@ -16,7 +16,6 @@ import org.mozilla.javascript.Scriptable
 import java.util.Base64
 import android.util.Log
 import com.lagradost.cloudstream3.extractors.MixDrop
-import com.lagradost.cloudstream3.extractors.Vflix
 import com.lagradost.cloudstream3.utils.JsUnpacker
 import com.lagradost.cloudstream3.utils.newExtractorLink
 
@@ -26,10 +25,6 @@ class DoodPmExtractor : DoodLaExtractor() {
 
 class MixDropAG : MixDrop(){
     override var mainUrl = "https://mixdrop.ag"
-}
-
-class vflixtop : Vflix(){
-    override var mainUrl = "https://vflix.top"
 }
 
 
