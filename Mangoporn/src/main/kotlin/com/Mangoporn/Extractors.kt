@@ -55,7 +55,7 @@ open class Lulustream : ExtractorApi() {
 }
 
 open class 3flixtop : ExtractorApi() {
-    override var name = "3flix.top"
+    override var name = "3flixtop"
     override var mainUrl = "https://3flix.top"
     override val requiresReferer = true
 
