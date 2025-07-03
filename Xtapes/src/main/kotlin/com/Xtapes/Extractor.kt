@@ -16,7 +16,7 @@ import com.lagradost.cloudstream3.utils.newExtractorLink
 
 
 class Stream : Filesim() {
-    override var mainUrl = "https://74k.io/stream"
+    override var mainUrl = "https://74k.io"
 }
 
 
