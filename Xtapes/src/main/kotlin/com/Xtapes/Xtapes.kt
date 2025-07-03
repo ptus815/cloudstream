@@ -16,21 +16,16 @@ class Xtapes : MainAPI() {
 
     override val mainPage = mainPageOf(
         "" to "Latest",
-        "category/amateur-gay-porn" to "Amateur",
+        "category/amateur-gay-porn" to "Amateur Cock",
         "category/asian-guys-porn" to "Asian",
-        "category/bareback-no-condom-porn-282612/" to "Bareback",
-        "category/black-guys-porn-41537/" to "Black Guys",
-        "05415" to "Play Ground",
-        "11075" to "Evil Angle",
-        "11007" to "Harmony Films",
-        "40100" to "New Sensations",
-        "37001" to "Sweet Sinner",
-        "32718" to "Blacked",
-        "12096" to "Tonight's Girlfriend",
-        "70587" to "Porn Fidelity",
-        "63704" to "Porn World",
-        "41606" to "Mofos",
-        "63416" to "Jules Jordan"     
+        "category/bareback-no-condom-porn-282612" to "Bareback",
+        "category/black-guys-porn-41537" to "Black Guys",
+        "category/big-thick-cock-porn-816238" to "Big Dicks",
+        "category/groupsex-gangbang-porn-189267" to "Group Sex",
+        "category/hunks-muscle-studs-porn-310274" to "Hunks",
+        "category/latin-287326" to "Latin",
+        "category/porn-parody" to "Parody",
+        "category/porn-movies-214660" to "Full Movies"  
     )
 
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
