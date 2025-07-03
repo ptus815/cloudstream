@@ -1,5 +1,5 @@
 // use an integer for version numbers
-version = 1
+version = 2
 
 
 cloudstream {
@@ -7,7 +7,7 @@ cloudstream {
 
     description = "Xtapes"
     language    = "en"
-    authors = listOf("HindiProviders")
+    authors = listOf("HindiProviders","GayXXX")
 
     /**
     * Status int as the following:
@@ -22,5 +22,5 @@ cloudstream {
     // You can find a list of avaliable types here:
     // https://recloudstream.github.io/cloudstream/html/app/com.lagradost.cloudstream3/-tv-type/index.html
     tvTypes = listOf("NSFW")
-    iconUrl = "https://www.google.com/s2/favicons?domain=https://xtapes.to&sz=%size%"
+    iconUrl = "https://www.google.com/s2/favicons?domain=https://gay.xtapes.in&sz=%size%"
 }
