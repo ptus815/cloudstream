@@ -1,9 +1,9 @@
-version = 9
+version = 1
 
 cloudstream {
-    authors     = listOf("XXX")
+    authors     = listOf("GayXXX")
     language    = "en"
-    description = "MangoPorn"
+    description = "Dvdgayonline"
 
     /**
      * Status int as the following:
