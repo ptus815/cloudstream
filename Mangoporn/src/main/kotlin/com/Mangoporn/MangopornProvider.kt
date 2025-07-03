@@ -19,6 +19,5 @@ class MangopornProvider: Plugin() {
         registerExtractorAPI(Lulustream())
         registerExtractorAPI(StreamTape())
         registerExtractorAPI(Vflixtop())
-        registerExtractorAPI(3Flixtop())
     }
 }
