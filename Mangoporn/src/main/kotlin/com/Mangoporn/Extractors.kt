@@ -16,6 +16,9 @@ import org.mozilla.javascript.Scriptable
 import java.util.Base64
 import android.util.Log
 import com.lagradost.cloudstream3.extractors.MixDrop
+import com.lagradost.cloudstream3.extractors.Vflix
+import
+com.lagradost.cloudstream3.extractors.3flix
 import com.lagradost.cloudstream3.utils.JsUnpacker
 import com.lagradost.cloudstream3.utils.newExtractorLink
 
@@ -25,6 +28,14 @@ class DoodPmExtractor : DoodLaExtractor() {
 
 class MixDropAG : MixDrop(){
     override var mainUrl = "https://mixdrop.ag"
+}
+
+class vflixtop : vflix(){
+    override var mainUrl = "https://vflix.top"
+}
+
+class 3flixtop : 3flix(){
+    override var mainUrl = "https://3flix.top"
 }
 
 open class Lulustream : ExtractorApi() {
@@ -54,59 +65,6 @@ open class Lulustream : ExtractorApi() {
     }
 }
 
-open class 3flixtop : ExtractorApi() {
-    override var name = "3flixtop"
-    override var mainUrl = "https://3flix.top"
-    override val requiresReferer = true
-
-    override suspend fun getUrl(url: String, referer: String?): List<ExtractorLink>? {
-        val response = app.get(url,referer=mainUrl).document
-        val extractedpack =response.selectFirst("script:containsData(function(p,a,c,k,e,d))")?.data().toString()
-        JsUnpacker(extractedpack).unpack()?.let { unPacked ->
-            Regex("sources:\\[\\{file:\"(.*?)\"").find(unPacked)?.groupValues?.get(1)?.let { link ->
-                return listOf(
-                    newExtractorLink(
-                        source = this.name,
-                        name = this.name,
-                        url = link,
-                        INFER_TYPE
-                    ) {
-                        this.referer = referer ?: ""
-                        this.quality = Qualities.Unknown.value
-                    }
-                )
-            }
-        }
-        return null
-    }
-}
-
-open class vflixtop : ExtractorApi() {
-    override var name = "vflixtop"
-    override var mainUrl = "https://vflix.top"
-    override val requiresReferer = true
-
-    override suspend fun getUrl(url: String, referer: String?): List<ExtractorLink>? {
-        val response = app.get(url,referer=mainUrl).document
-        val extractedpack =response.selectFirst("script:containsData(function(p,a,c,k,e,d))")?.data().toString()
-        JsUnpacker(extractedpack).unpack()?.let { unPacked ->
-            Regex("sources:\\[\\{file:\"(.*?)\"").find(unPacked)?.groupValues?.get(1)?.let { link ->
-                return listOf(
-                    newExtractorLink(
-                        source = this.name,
-                        name = this.name,
-                        url = link,
-                        INFER_TYPE
-                    ) {
-                        this.referer = referer ?: ""
-                        this.quality = Qualities.Unknown.value
-                    }
-                )
-            }
-        }
-        return null
-    }
-}
 
 
 open class Vidguardto : ExtractorApi() {
