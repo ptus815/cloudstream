@@ -6,7 +6,7 @@ import com.lagradost.cloudstream3.*
 import com.lagradost.cloudstream3.utils.*
 
 class Mangoporn : MainAPI() {
-    override var mainUrl              = "http://mangoporn.net"
+    override var mainUrl              = "http://dvdgayonline.com"
     override var name                 = "Mangoporn"
     override val hasMainPage          = true
     override var lang                 = "en"
@@ -15,39 +15,24 @@ class Mangoporn : MainAPI() {
     override val vpnStatus            = VPNStatus.MightBeNeeded
 
         override val mainPage = mainPageOf(
-        "genres/porn-movies" to "Latest Release",
-        "genre/russian" to "Russian",
-        "studios/brazzers" to "Brazzers",
-        "studios/bang-bros-productions" to "Bang Bros",
-        "studios/evil-angel" to "Evil Angle",
-        "studios/hustler" to "Hustler",
-        "studios/devils-film" to "Devil Film",
-        "studios/reality-kings" to "Reality Kings",
-        "genre/family-roleplay" to "Family Roleplay",
+        "genres/new-release" to "New Release",
+        "tendencia" to "Trending",
+        "mais-votados" to "Ratings",
+        "genre/amateur" to "Amateur",
+        "genre/brazilian" to "Brazilian",
+        "genre/threeway" to "Hustler",
+        "genre/latino" to "Latino",
+        "genre/muscles" to "Muscles",
+        "genre/bareback" to "Bareback",
         "genre/parody" to "Parody",
         "genre/gangbang" to "Gangbang",
-        "genre/18-teens" to "18+ Teens",
+        "genre/bisexual" to "Bisexual",
         "genre/anal" to "Anal",
-        "genre/big-boobs" to "Big Boobs",
-        "genre/blondes" to "Blondes",
-        "genre/blowjobs" to "Blowjobs",
-        "genre/lesbian" to "Lesbian",
-        "genre/deep-throat" to "Deep Throat",
-        "genre/cumshots" to "Cumshots",
-        "genre/facials" to "Facials",
-        "genre/bdsm" to "BDSM",
+        "genre/uniform" to "Uniform",
         "genre/threesomes" to "Threesomes",
         "genre/gangbang" to "Gangbang",
-        "genre/redheads" to "Red Heads",
-        "genre/squirting" to "Squirting",
-        "genre/milf" to "MILF",
         "genre/asian" to "Asian",
-
-        "genre/big-butt" to "Big Butt",
-        "genre/big-cock" to "Big Cock",
-        "genre/squirting" to "Squirting",
-        "genre/swallowing" to "Swallowing"
-
+        "genre/big-cock" to "Big Cock"
     )
 
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
