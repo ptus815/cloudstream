@@ -20,7 +20,7 @@ class Boyfriendtv : MainAPI() {
     override val vpnStatus            = VPNStatus.MightBeNeeded
 
     override val mainPage = mainPageOf(
-        "/" to "Trending",
+        "" to "Trending",
         "tags/asian" to "Asian",
         "tags/latinos" to "Latinos",
         "playlists/7268174" to "Playlist Hot",
