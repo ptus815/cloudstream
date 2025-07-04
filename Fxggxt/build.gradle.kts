@@ -1,4 +1,4 @@
-version = 5
+version = 1
 
 cloudstream {
     authors     = listOf("Sora", "keyiflerolsun","ramio23","XXX")
@@ -14,5 +14,5 @@ cloudstream {
     **/
     status  = 1 // will be 3 if unspecified
     tvTypes = listOf("NSFW")
-    iconUrl = "https://fxpornhd.com/wp-content/uploads/2024/06/logo-fxpornhd.com_.png"
+    iconUrl = "https://fxggxt.com/wp-content/uploads/2021/04/cropped-Logopit_1617545426773.png"
 }
