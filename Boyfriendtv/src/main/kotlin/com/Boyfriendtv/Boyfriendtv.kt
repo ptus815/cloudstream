@@ -1,6 +1,11 @@
 package com.Boyfriendtv
 
 import org.jsoup.nodes.Element
+import com.google.gson.Gson
+import com.lagradost.api.Log
+import org.json.JSONObject
+import org.jsoup.nodes.Document
+import java.lang.System
 import com.lagradost.cloudstream3.*
 import com.lagradost.cloudstream3.utils.*
 
@@ -15,7 +20,7 @@ class Boyfriendtv : MainAPI() {
     override val vpnStatus            = VPNStatus.MightBeNeeded
 
     override val mainPage = mainPageOf(
-        "" to "Trending",
+        "/" to "Trending",
         "tags/asian" to "Asian",
         "tags/latinos" to "Latinos",
         "playlists/7268174" to "Playlist Hot",
@@ -24,26 +29,19 @@ class Boyfriendtv : MainAPI() {
     )
 
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
-        val document = app.get("$mainUrl/${request.data}/$page/").document
-        val home     = document.select("div.list-videos div.item").mapNotNull { it.toSearchResult() }
+            var document = app.get("$mainUrl${request.data}$page", timeout = 30).document
+            val responseList  = document.select(".popbop.vidLinkFX").mapNotNull { it.toSearchResult() }
+            return newHomePageResponse(HomePageList(request.name, responseList, isHorizontalImages = true),hasNext = true)
 
-        return newHomePageResponse(
-                list    = HomePageList(
-                name    = request.name,
-                list    = home,
-                isHorizontalImages = true
-            ),
-            hasNext = true
-        )
     }
 
     private fun Element.toSearchResult(): SearchResponse {
-        val title     = this.select("a").attr("title")
-        val href      = this.select("a").attr("href")
-        var posterUrl = this.select("img").attr("src")
+        val title = this.select(".videotitle").text()
+        val href =  this.attr("href")
+        var posterUrl = this.select(".imgvideo").attr("data-src")
 
-        if(posterUrl.contains("data:image")) {
-            posterUrl = this.select("img").attr("data-src")
+        if (posterUrl.isEmpty()) {
+            posterUrl = this.select(".imgvideo").attr("src")
         }
 
         return newMovieSearchResponse(title, href, TvType.Movie) {
@@ -52,11 +50,15 @@ class Boyfriendtv : MainAPI() {
     }
 
     override suspend fun search(query: String): List<SearchResponse> {
+
         val searchResponse = mutableListOf<SearchResponse>()
 
         for (i in 1..7) {
-            val document = app.get("$mainUrl/search/$i/?q=$query").document
-            val results  = document.select("div.list-videos div.item").mapNotNull { it.toSearchResult() }
+            var document = app.get("$mainUrl/search?q=$query&page=$i", timeout = 30).document
+
+            //val document = app.get("${mainUrl}/page/$i/?s=$queassry").document
+
+            val results = document.select(".popbop.vidLinkFX").mapNotNull { it.toSearchResult() }
 
             if (!searchResponse.containsAll(results)) {
                 searchResponse.addAll(results)
@@ -68,40 +70,43 @@ class Boyfriendtv : MainAPI() {
         }
 
         return searchResponse
+
     }
 
     override suspend fun load(url: String): LoadResponse {
         val document = app.get(url).document
+        val script = document.select("script[data-react-helmet=\"true\"]").html()
+        val jsonObj = JSONObject(script)
+        val title = jsonObj.get("name")
+        val poster = jsonObj.getJSONArray("thumbnailUrl")[0]
+        val description = jsonObj.get("description")
 
-        val title       = document.select("meta[property=og:title]").attr("content")
-        val poster      = document.select("meta[property='og:image']").attr("content")
-        val description = document.select("meta[property=og:description]").attr("content")
 
-
-        return newMovieLoadResponse(title, url, TvType.Movie, url) {
-            this.posterUrl = poster
-            this.plot      = description
+        return newMovieLoadResponse(title.toString(), url, TvType.NSFW, url) {
+            this.posterUrl = poster.toString()
+            this.plot = description.toString()
         }
     }
 
     override suspend fun loadLinks(data: String, isCasting: Boolean, subtitleCallback: (SubtitleFile) -> Unit, callback: (ExtractorLink) -> Unit): Boolean {
-        val document = app.get(data).document
-
-        document.select("video.video-js > source").forEach {
-            val url     = it.attr("src")
-            val quality = it.attr("label").replace("p", "").toIntOrNull() ?: Qualities.Unknown.value
-            callback.invoke(
-                newExtractorLink(
-                    this.name,
-                    this.name,
-                    url,
-                    type = ExtractorLinkType.VIDEO,
-                ) {
-                    this.quality = quality
-                    this.referer = data
-                }
+        val doc = app.get(data).document
+        val sources = doc.select("#pornone-video-player source")
+        sources.forEach { item->
+            val src = item.attr("src")
+            val quality = item.attr("res")
+            callback.invoke(newExtractorLink(
+                source = name,
+                name = name,
+                url = src
+            ) {
+                this.referer = ""
+                this.quality = quality.toInt()
+            }
             )
         }
+
+
+
         return true
     }
 }
