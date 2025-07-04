@@ -1,4 +1,4 @@
-package com.XXX
+package com.Fxggxt
 
 import android.util.Log
 import com.lagradost.cloudstream3.*
@@ -8,27 +8,25 @@ import com.lagradost.cloudstream3.utils.loadExtractor
 import com.lagradost.cloudstream3.utils.*
 import org.jsoup.nodes.Element
 
-class Fxprnhd : MainAPI() {
-    override var mainUrl = "https://fxpornhd.com"
-    override var name = "Fxprnhd"
+class Fxggxt : MainAPI() {
+    override var mainUrl = "https://fxggxt.com"
+    override var name = "Fxggxt"
     override val hasMainPage = true
     override val hasDownloadSupport = true
     override val vpnStatus = VPNStatus.MightBeNeeded
     override val supportedTypes = setOf(TvType.NSFW)
 
     override val mainPage = mainPageOf(
-        "$mainUrl/c/bangbros" to "Bang Bros",
-        "$mainUrl/c/brazzers" to "Brazzers",
-        "$mainUrl/c/realitykings" to "Reality Kings",
-        "$mainUrl/c/blacked" to "Blacked",
-        "$mainUrl/c/pervmom" to "Pervmom",
-        "$mainUrl/s/teens" to "Teen",
-        "$mainUrl/s/anal" to "Anal",
-        "$mainUrl/s/big-boobs" to "Big Boobs",
-        "$mainUrl/s/fake-taxi" to "Fake Taxi",
-        "$mainUrl/s/fingering" to "Figering",
-        "$mainUrl/s/family-sex" to "Family",
-        "$mainUrl/s/titty-fuck" to "Titty Fuck",
+        "$mainUrl/tag/amateur-gay-porn" to "Amateur",
+        "$mainUrl/tag/bareback-gay-porn" to "Bareback",
+        "$mainUrl/tag/big-dick-gay-porn" to "Big Dick",
+        "$mainUrl/tag/bisexual-porn" to "Bisexual",
+        "$mainUrl/tag/group-gay-porn" to "Group",
+        "$mainUrl/tag/hunk-gay-porn-videos" to "Hunk",
+        "$mainUrl/tag/interracial-gay-porn" to "Interracial",
+        "$mainUrl/tag/muscle-gay-porn" to "Muscle",
+        "$mainUrl/tag/straight-guys-gay-porn" to "Straight",
+        "$mainUrl/tag/twink-gay-porn" to "Twink",
 
         )
 
