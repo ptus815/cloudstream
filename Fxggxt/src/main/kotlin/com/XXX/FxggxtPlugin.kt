@@ -1,14 +1,16 @@
-package com.XXX
+package com.Fxggxt
 
 import com.lagradost.cloudstream3.plugins.CloudstreamPlugin
 import com.lagradost.cloudstream3.plugins.Plugin
 import android.content.Context
 import com.lagradost.cloudstream3.extractors.StreamTape
+import com.lagradost.cloudstream3.extractors.DoodPmExtractor
 
 @CloudstreamPlugin
-class FXPrnHDPlugin: Plugin() {
+class FxggxtPlugin: Plugin() {
     override fun load(context: Context) {
-        registerMainAPI(Fxprnhd())
+        registerMainAPI(Fxggxt())
         registerExtractorAPI(StreamTape())
+        registerExtractorAPI(DoodPmExtractor())
     }
 }
