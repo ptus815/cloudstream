@@ -1,5 +1,5 @@
 // use an integer for version numbers
-version = 4
+version = 1
 
 
 cloudstream {
@@ -7,7 +7,7 @@ cloudstream {
 
     description = ""
     language    = "en"
-    authors = listOf("megix")
+    authors = listOf("GayXXX")
 
     /**
     * Status int as the following:
@@ -22,5 +22,5 @@ cloudstream {
     // You can find a list of avaliable types here:
     // https://recloudstream.github.io/cloudstream/html/app/com.lagradost.cloudstream3/-tv-type/index.html
     tvTypes = listOf("NSFW")
-    iconUrl = "https://www.longvideos.xxx/img/favicon/apple-touch-icon.png"
+    iconUrl = "https://cdn77.boyfriendtv.com/bftv/www/img/bftv/mstile-144x144.png"
 }
