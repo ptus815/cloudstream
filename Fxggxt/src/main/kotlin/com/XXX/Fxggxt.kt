@@ -30,108 +30,84 @@ class Fxggxt : MainAPI() {
 
         )
 
-    override suspend fun getMainPage(
-        page: Int,
-        request: MainPageRequest
-    ): HomePageResponse {
-        val document = app.get("${request.data}/page/$page").document
-        val home =
-            document.select("article")
-                .mapNotNull {
-                    it.toSearchResult()
-                }
-        return newHomePageResponse(
-            list = HomePageList(
-                name = request.name,
-                list = home,
-                isHorizontalImages = true
-            ),
-            hasNext = true
-        )
+        override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
+            var document = app.get("$mainUrl${request.data}$page", timeout = 30).document
+            val responseList  = document.select(".popbop.vidLinkFX").mapNotNull { it.toSearchResult() }
+            return newHomePageResponse(HomePageList(request.name, responseList, isHorizontalImages = true),hasNext = true)
+
     }
 
-    private fun Element.toSearchResult(): SearchResponse? {
-        val title = this.selectFirst("span.title")?.text() ?: return null
-        val href = fixUrl(this.selectFirst("a")!!.attr("href"))
-        val posterUrl = this.select("img").attr("src")
-        Log.d("posterUrl", posterUrl)
+    private fun Element.toSearchResult(): SearchResponse {
+        val title = this.select(".videotitle").text()
+        val href =  this.attr("href")
+        var posterUrl = this.select(".imgvideo").attr("data-src")
+
+        if (posterUrl.isEmpty()) {
+            posterUrl = this.select(".imgvideo").attr("src")
+        }
+
         return newMovieSearchResponse(title, href, TvType.Movie) {
             this.posterUrl = posterUrl
         }
-
     }
 
     override suspend fun search(query: String): List<SearchResponse> {
+
         val searchResponse = mutableListOf<SearchResponse>()
-        for (i in 1..15) {
-            val document =
-                app.get(
-                    "$mainUrl/search/?s=query&page=$i",
-                    headers = mapOf("X-Requested-With" to "XMLHttpRequest")
-                ).document
-            val results =
-                document.select("div.videos-list > article")
-                    .mapNotNull {
-                        it.toSearchResult()
-                    }
-            searchResponse.addAll(results)
+
+        for (i in 1..7) {
+            var document = app.get("$mainUrl/search?q=$query&page=$i", timeout = 30).document
+
+            //val document = app.get("${mainUrl}/page/$i/?s=$queassry").document
+
+            val results = document.select(".popbop.vidLinkFX").mapNotNull { it.toSearchResult() }
+
+            if (!searchResponse.containsAll(results)) {
+                searchResponse.addAll(results)
+            } else {
+                break
+            }
+
             if (results.isEmpty()) break
         }
+
         return searchResponse
+
     }
 
     override suspend fun load(url: String): LoadResponse {
         val document = app.get(url).document
+        val script = document.select("script[data-react-helmet=\"true\"]").html()
+        val jsonObj = JSONObject(script)
+        val title = jsonObj.get("name")
+        val poster = jsonObj.getJSONArray("thumbnailUrl")[0]
+        val description = jsonObj.get("description")
 
-        val title = document.selectFirst("div.title-views > h1")?.text()?.trim().toString()
-        val poster =
-            fixUrlNull(document.selectFirst("meta[property=og:image]")?.attr("content").toString())
-        val tags = document.select("div.tags-list > i").map { it.text() }
-        val description = document.select("div#rmjs-1 p:nth-child(1) > br").text().trim()
-        val actors = document.select("div#rmjs-1 p:nth-child(1) a:nth-child(2) > strong").map { it.text() }
 
-        val recommendations =
-            document.select("div.videos-list > article").mapNotNull {
-                it.toSearchResult()
-            }
-
-        return newMovieLoadResponse(title, url, TvType.NSFW, url) {
-            this.posterUrl = poster
-            this.plot = description
-            this.tags = tags
-            addActors(actors)
-            this.recommendations = recommendations
+        return newMovieLoadResponse(title.toString(), url, TvType.NSFW, url) {
+            this.posterUrl = poster.toString()
+            this.plot = description.toString()
         }
     }
 
-    override suspend fun loadLinks(
-        data: String,
-        isCasting: Boolean,
-        subtitleCallback: (SubtitleFile) -> Unit,
-        callback: (ExtractorLink) -> Unit
-    ): Boolean {
-
-        val iframe = app.get(data).document.select("div.responsive-player iframe").attr("src")
-
-        if (iframe.startsWith(mainUrl)) {
-            val video = app.get(iframe, referer = data).document.select("video source").attr("src")
-            callback.invoke(
-                newExtractorLink(
-                    source = this.name,
-                    name = this.name,
-                    url = video,
-                    type = INFER_TYPE
-                ) {
-                    this.referer = "$mainUrl/"
-                    this.quality = Qualities.Unknown.value
-                    this.headers = mapOf(
-                        "Range" to "bytes=0-"
-                    )
-                }
+    override suspend fun loadLinks(data: String, isCasting: Boolean, subtitleCallback: (SubtitleFile) -> Unit, callback: (ExtractorLink) -> Unit): Boolean {
+        val doc = app.get(data).document
+        val sources = doc.select("#pornone-video-player source")
+        sources.forEach { item->
+            val src = item.attr("src")
+            val quality = item.attr("res")
+            callback.invoke(newExtractorLink(
+                source = name,
+                name = name,
+                url = src
+            ) {
+                this.referer = ""
+                this.quality = quality.toInt()
+            }
             )
-        } else {
-            loadExtractor(iframe, "$mainUrl/", subtitleCallback, callback)
         }
+
+
 
         return true
     }
