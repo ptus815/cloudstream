@@ -1,11 +1,16 @@
 package com.Boyfriendtv
 
 import org.jsoup.nodes.Element
+import com.google.gson.Gson
+import com.lagradost.api.Log
+import org.json.JSONObject
+import org.jsoup.nodes.Document
+import java.lang.System
 import com.lagradost.cloudstream3.*
 import com.lagradost.cloudstream3.utils.*
 
 class Boyfriendtv : MainAPI() {
-    override var mainUrl              = "https://www.boyfriendtv.com"
+    override var mainUrl              = "https://boyfriendtv.com"
     override var name                 = "Boyfriendtv"
     override val hasMainPage          = true
     override var lang                 = "en"
@@ -15,22 +20,22 @@ class Boyfriendtv : MainAPI() {
     override val vpnStatus            = VPNStatus.MightBeNeeded
 
     override val mainPage = mainPageOf(
-        "" to "Trending",
-        "tags/asian" to "Asian",
-        "tags/latinos" to "Latinos",
-        "playlists/7268174" to "Playlist Hot",
-        "?s=&sort=newest" to "New",
-        "?s=&sort=most-popular" to "Most Popular"
+        "/" to "Trending",
+        "tag/anal/" to "Trending",
+        "tags/asian/" to "Asian",
+        "tags/latinos/" to "Latinos",
+        "?s=&sort=newest/" to "New",
+        "?s=&sort=most-popular/" to "Most Popular"
     )
 
-    override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
-        val document = app.get("$mainUrl/${request.data}/$page/").document
-        val home     = document.select("div.list-videos div.item").mapNotNull { it.toSearchResult() }
+         override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
+        val document = app.get("$mainUrl/${request.data}/page/$page/").document
+        val home     = document.select("article").mapNotNull { it.toSearchResult() }
 
         return newHomePageResponse(
-                list    = HomePageList(
-                name    = request.name,
-                list    = home,
+            list    = HomePageList(
+                name               = request.name,
+                list               = home,
                 isHorizontalImages = true
             ),
             hasNext = true
@@ -38,14 +43,10 @@ class Boyfriendtv : MainAPI() {
     }
 
     private fun Element.toSearchResult(): SearchResponse {
-        val title     = this.select("a").attr("title")
-        val href      = this.select("a").attr("href")
-        var posterUrl = this.select("img").attr("src")
-
-        if(posterUrl.contains("data:image")) {
-            posterUrl = this.select("img").attr("data-src")
-        }
-
+        val title     = this.select("header > h2 > a").text().trim()
+        val href      = fixUrl(this.select("header > h2 > a").attr("href"))
+        val posterUrl = fixUrlNull(this.select("header > a > img").attr("data-src"))
+        println(posterUrl)
         return newMovieSearchResponse(title, href, TvType.Movie) {
             this.posterUrl = posterUrl
         }
@@ -54,9 +55,10 @@ class Boyfriendtv : MainAPI() {
     override suspend fun search(query: String): List<SearchResponse> {
         val searchResponse = mutableListOf<SearchResponse>()
 
-        for (i in 1..7) {
-            val document = app.get("$mainUrl/search/$i/?q=$query").document
-            val results  = document.select("div.list-videos div.item").mapNotNull { it.toSearchResult() }
+        for (i in 1..5) {
+            val document = app.get("${mainUrl}/page/$i/?s=$query&id=5036").document
+
+            val results = document.select("article").mapNotNull { it.toSearchResult() }
 
             if (!searchResponse.containsAll(results)) {
                 searchResponse.addAll(results)
@@ -73,12 +75,12 @@ class Boyfriendtv : MainAPI() {
     override suspend fun load(url: String): LoadResponse {
         val document = app.get(url).document
 
-        val title       = document.select("meta[property=og:title]").attr("content")
-        val poster      = document.select("meta[property='og:image']").attr("content")
-        val description = document.select("meta[property=og:description]").attr("content")
+        val title       = document.selectFirst("meta[property=og:title]")?.attr("content")?.trim().toString()
+        val poster      = fixUrlNull(document.selectFirst("[property='og:image']")?.attr("content"))
+        val description = document.selectFirst("meta[property=og:description]")?.attr("content")?.trim()
 
 
-        return newMovieLoadResponse(title, url, TvType.Movie, url) {
+        return newMovieLoadResponse(title, url, TvType.NSFW, url) {
             this.posterUrl = poster
             this.plot      = description
         }
@@ -86,21 +88,17 @@ class Boyfriendtv : MainAPI() {
 
     override suspend fun loadLinks(data: String, isCasting: Boolean, subtitleCallback: (SubtitleFile) -> Unit, callback: (ExtractorLink) -> Unit): Boolean {
         val document = app.get(data).document
-
-        document.select("video.video-js > source").forEach {
-            val url     = it.attr("src")
-            val quality = it.attr("label").replace("p", "").toIntOrNull() ?: Qualities.Unknown.value
-            callback.invoke(
-                newExtractorLink(
-                    this.name,
-                    this.name,
-                    url,
-                    type = ExtractorLinkType.VIDEO,
-                ) {
-                    this.quality = quality
-                    this.referer = data
-                }
-            )
+        //val sources = mutableListOf<String>()
+        document.select("article > div > div > button").forEach { button ->
+            val onclickAttr = button.attr("onclick")
+            val regex = Regex("""playEmbed\('([^']+)'\)""")
+            val matchResult = regex.find(onclickAttr)
+            val playlistUrl = matchResult?.groups?.get(1)?.value
+            playlistUrl?.let {
+                //println(it) // Print the extracted URL
+                //sources.add(it) // Add the URL to the sources list
+                loadExtractor(it, subtitleCallback, callback)
+            }
         }
         return true
     }
