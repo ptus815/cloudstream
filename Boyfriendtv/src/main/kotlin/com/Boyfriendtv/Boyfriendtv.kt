@@ -4,7 +4,7 @@ import org.jsoup.nodes.Element
 import com.lagradost.cloudstream3.*
 import com.lagradost.cloudstream3.utils.*
 
-class Longvideos : MainAPI() {
+class Boyfriendtv : MainAPI() {
     override var mainUrl              = "https://www.boyfriendtv.com"
     override var name                 = "Boyfriendtv"
     override val hasMainPage          = true
