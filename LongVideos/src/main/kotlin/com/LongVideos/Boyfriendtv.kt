@@ -1,12 +1,12 @@
-package com.LongVideos
+package com.Boyfriendtv
 
 import org.jsoup.nodes.Element
 import com.lagradost.cloudstream3.*
 import com.lagradost.cloudstream3.utils.*
 
 class Longvideos : MainAPI() {
-    override var mainUrl              = "https://www.longvideos.xxx"
-    override var name                 = "Longvideos"
+    override var mainUrl              = "https://www.boyfriendtv.com"
+    override var name                 = "Boyfriendtv"
     override val hasMainPage          = true
     override var lang                 = "en"
     override val hasQuickSearch       = false
@@ -15,11 +15,12 @@ class Longvideos : MainAPI() {
     override val vpnStatus            = VPNStatus.MightBeNeeded
 
     override val mainPage = mainPageOf(
-        "latest-updates" to "Latest",
-        "networks/brazzers-com/latest-updates" to "Brazzers",
-        "networks/tushy-com/latest-updates" to "Tushy",
-        "networks/blacked/latest-updates" to "Blacked",
-        "sites/dorcel-club/latest-updates" to "Dorcel",
+        "" to "Trending",
+        "tags/asian" to "Asian",
+        "tags/latinos" to "Latinos",
+        "playlists/7268174" to "Playlist Hot",
+        "?s=&sort=newest" to "New",
+        "?s=&sort=most-popular" to "Most Popular"
     )
 
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
