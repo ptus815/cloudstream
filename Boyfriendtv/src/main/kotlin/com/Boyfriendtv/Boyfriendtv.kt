@@ -10,7 +10,7 @@ import com.lagradost.cloudstream3.*
 import com.lagradost.cloudstream3.utils.*
 
 class Boyfriendtv : MainAPI() {
-    override var mainUrl              = "https://www.boyfriendtv.com"
+    override var mainUrl              = "https://gay.xtapes.in"
     override var name                 = "Boyfriendtv"
     override val hasMainPage          = true
     override var lang                 = "en"
@@ -20,12 +20,17 @@ class Boyfriendtv : MainAPI() {
     override val vpnStatus            = VPNStatus.MightBeNeeded
 
     override val mainPage = mainPageOf(
-        "/" to "Trending",
-        "tag/anal/" to "Trending",
-        "tags/asian/" to "Asian",
-        "tags/latinos/" to "Latinos",
-        "?s=&sort=newest/" to "New",
-        "?s=&sort=most-popular/" to "Most Popular"
+        "" to "Latest",
+        "category/amateur-gay-porn" to "Amateur Cock",
+        "category/asian-guys-porn" to "Asian",
+        "category/bareback-no-condom-porn-282612" to "Bareback",
+        "category/black-guys-porn-41537" to "Black Guys",
+        "category/big-thick-cock-porn-816238" to "Big Dicks",
+        "category/groupsex-gangbang-porn-189267" to "Group Sex",
+        "category/hunks-muscle-studs-porn-310274" to "Hunks",
+        "category/latin-287326" to "Latin",
+        "category/porn-parody" to "Parody",
+        "category/porn-movies-214660" to "Full Movies"
     )
 
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
