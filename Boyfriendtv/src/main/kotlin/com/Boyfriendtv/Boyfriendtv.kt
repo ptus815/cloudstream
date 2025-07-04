@@ -33,11 +33,18 @@ class Boyfriendtv : MainAPI() {
         "category/porn-movies-214660" to "Full Movies"
     )
 
-    override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
-            var document = app.get("$mainUrl${request.data}$page", timeout = 30).document
-            val responseList  = document.select(".popbop.vidLinkFX").mapNotNull { it.toSearchResult() }
-            return newHomePageResponse(HomePageList(request.name, responseList, isHorizontalImages = true),hasNext = true)
+        override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
+        val document = app.get("$mainUrl/${request.data}/page/$page/").document
+        val home     = document.select("ul.listing-videos li").mapNotNull { it.toSearchResult() }
 
+        return newHomePageResponse(
+            list    = HomePageList(
+                name               = request.name,
+                list               = home,
+                isHorizontalImages = true
+            ),
+            hasNext = true
+        )
     }
 
     private fun Element.toSearchResult(): SearchResponse {
