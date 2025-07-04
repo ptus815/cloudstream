@@ -10,7 +10,7 @@ import com.lagradost.cloudstream3.*
 import com.lagradost.cloudstream3.utils.*
 
 class Boyfriendtv : MainAPI() {
-    override var mainUrl              = "https://www.boyfriendtv.com"
+    override var mainUrl              = "https://www.boyfriendtv.com/"
     override var name                 = "Boyfriendtv"
     override val hasMainPage          = true
     override var lang                 = "en"
@@ -20,11 +20,11 @@ class Boyfriendtv : MainAPI() {
     override val vpnStatus            = VPNStatus.MightBeNeeded
 
     override val mainPage = mainPageOf(
-        "/" to "Trending",
-        "/tags/asian" to "Asian",
-        "/tags/latinos" to "Latinos",
-        "/?s=&sort=newest" to "New",
-        "/?s=&sort=most-popular" to "Most Popular"
+        "" to "Trending",
+        "tags/asian" to "Asian",
+        "tags/latinos" to "Latinos",
+        "?s=&sort=newest" to "New",
+        "?s=&sort=most-popular" to "Most Popular"
     )
 
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
