@@ -80,7 +80,7 @@ class FullPorner : MainAPI() {
 
     val videoID = Regex("""var id = \"(.+?)\"""").find(iframeDocument.html())?.groupValues?.get(1)
     val fullboysDocument = app.get("https://www.fullboys.com/embed/${videoID}").document
-    val matchResult = Regex("""preview_url:\s*'([^']+)'""").find(pornTrexDocument.html())
+    val matchResult = Regex("""preview_url:\s*'([^']+)'""").find(fullboysDocument.html())
     val poster = matchResult?.groupValues?.get(1)
     val posterUrl = fixUrlNull("https:$poster")
 
