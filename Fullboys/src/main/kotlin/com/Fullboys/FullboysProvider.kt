@@ -1,7 +1,6 @@
 package com.Fullboys
 
 import android.content.Context
-import com.Fullboys.Fullboys
 import com.lagradost.cloudstream3.plugins.CloudstreamPlugin
 import com.lagradost.cloudstream3.plugins.Plugin
 
