@@ -114,13 +114,13 @@ class Fullboys : MainAPI() {
         val videoElement = document.selectFirst("video#myvideo source")
         val videoUrl = videoElement?.attr("src") ?: return false
         
-        // SỬA LỖI DEPRECATED Ở ĐÂY:
+        // ĐÃ SỬA: Sử dụng cấu trúc ExtractorLink mới
         callback.invoke(
-            newExtractorLink( // Sử dụng newExtractorLink thay vì ExtractorLink constructor
-                source = name,
-                name = name,
+            ExtractorLink(
+                name = this.name,
+                source = this.name,
                 url = videoUrl,
-                referer = mainUrl,
+                referer = "$mainUrl/",
                 quality = Qualities.Unknown.value,
                 isM3u8 = videoUrl.contains(".m3u8")
             )
