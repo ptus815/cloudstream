@@ -1,12 +1,10 @@
 package com.Fxggxt
 
-import android.util.Log
 import com.lagradost.cloudstream3.*
 import com.lagradost.cloudstream3.LoadResponse.Companion.addActors
 import com.lagradost.cloudstream3.utils.ExtractorLink
 import com.lagradost.cloudstream3.utils.loadExtractor
-import com.lagradost.cloudstream3.utils.*
-import org.json.JSONObject
+import com.lagradost.cloudstream3.utils.AppUtils.toJson
 import org.jsoup.nodes.Element
 
 class Fxggxt : MainAPI() {
@@ -18,98 +16,74 @@ class Fxggxt : MainAPI() {
     override val supportedTypes = setOf(TvType.NSFW)
 
     override val mainPage = mainPageOf(
-        "$mainUrl/tag/amateur-gay-porn" to "Amateur",
-        "$mainUrl/tag/bareback-gay-porn" to "Bareback",
-        "$mainUrl/tag/big-dick-gay-porn" to "Big Dick",
-        "$mainUrl/tag/bisexual-porn" to "Bisexual",
-        "$mainUrl/tag/group-gay-porn" to "Group",
-        "$mainUrl/tag/hunk-gay-porn-videos" to "Hunk",
-        "$mainUrl/tag/interracial-gay-porn" to "Interracial",
-        "$mainUrl/tag/muscle-gay-porn" to "Muscle",
-        "$mainUrl/tag/straight-guys-gay-porn" to "Straight",
-        "$mainUrl/tag/twink-gay-porn" to "Twink",
+        "$mainUrl/tag/amateur-gay-porn/page/" to "Amateur",
+        "$mainUrl/tag/bareback-gay-porn/page/" to "Bareback",
+        "$mainUrl/tag/big-dick-gay-porn/page/" to "Big Dick",
+        "$mainUrl/tag/bisexual-porn/page/" to "Bisexual",
+        "$mainUrl/tag/group-gay-porn/page/" to "Group",
+        "$mainUrl/tag/hunk-gay-porn-videos/page/" to "Hunk",
+        "$mainUrl/tag/interracial-gay-porn/page/" to "Interracial",
+        "$mainUrl/tag/muscle-gay-porn/page/" to "Muscle",
+        "$mainUrl/tag/straight-guys-gay-porn/page/" to "Straight",
+        "$mainUrl/tag/twink-gay-porn/page/" to "Twink"
+    )
 
-        )
-
-        override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
-            var document = app.get("$mainUrl${request.data}$page", timeout = 30).document
-            val responseList  = document.select(".popbop.vidLinkFX").mapNotNull { it.toSearchResult() }
-            return newHomePageResponse(HomePageList(request.name, responseList, isHorizontalImages = true),hasNext = true)
-
+    override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
+        val document = app.get("${request.data}$page").document
+        val videos = document.select("article.thumb-block a").mapNotNull { it.toSearchResult() }
+        return newHomePageResponse(HomePageList(request.name, videos, isHorizontalImages = true), hasNext = true)
     }
 
-    private fun Element.toSearchResult(): SearchResponse {
-        val title = this.select(".videotitle").text()
-        val href =  this.attr("href")
-        var posterUrl = this.select(".imgvideo").attr("data-src")
-
-        if (posterUrl.isEmpty()) {
-            posterUrl = this.select(".imgvideo").attr("src")
-        }
+    private fun Element.toSearchResult(): SearchResponse? {
+        val href = this.attr("href")
+        val title = this.select("header.entry-header span").text()
+        var poster = this.select("img").attr("data-src")
+        if (poster.isNullOrEmpty()) poster = this.select("img").attr("src")
 
         return newMovieSearchResponse(title, href, TvType.Movie) {
-            this.posterUrl = posterUrl
+            this.posterUrl = poster
         }
     }
 
     override suspend fun search(query: String): List<SearchResponse> {
-
-        val searchResponse = mutableListOf<SearchResponse>()
-
+        val searchResults = mutableListOf<SearchResponse>()
         for (i in 1..7) {
-            var document = app.get("$mainUrl/search?q=$query&page=$i", timeout = 30).document
-
-            //val document = app.get("${mainUrl}/page/$i/?s=$queassry").document
-
-            val results = document.select(".popbop.vidLinkFX").mapNotNull { it.toSearchResult() }
-
-            if (!searchResponse.containsAll(results)) {
-                searchResponse.addAll(results)
-            } else {
-                break
-            }
+            val doc = app.get("$mainUrl/?s=$query&page=$i").document
+            val results = doc.select("article.thumb-block a").mapNotNull { it.toSearchResult() }
 
             if (results.isEmpty()) break
+            if (!searchResults.containsAll(results)) searchResults.addAll(results) else break
         }
-
-        return searchResponse
-
+        return searchResults
     }
 
     override suspend fun load(url: String): LoadResponse {
-        val document = app.get(url).document
-        val script = document.select("script[data-react-helmet=\"true\"]").html()
-        val jsonObj = JSONObject(script)
-        val title = jsonObj.get("name")
-        val poster = jsonObj.getJSONArray("thumbnailUrl")[0]
-        val description = jsonObj.get("description")
+        val doc = app.get(url).document
+        val title = doc.select("header.entry-header span").text().ifEmpty { "No Title" }
+        val poster = doc.select("div.post-thumbnail img").attr("data-src")
+        val description = doc.select("meta[name=description]").attr("content")
 
-
-        return newMovieLoadResponse(title.toString(), url, TvType.NSFW, url) {
-            this.posterUrl = poster.toString()
-            this.plot = description.toString()
+        return newMovieLoadResponse(title, url, TvType.NSFW, url) {
+            this.posterUrl = poster
+            this.plot = description
         }
     }
 
-    override suspend fun loadLinks(data: String, isCasting: Boolean, subtitleCallback: (SubtitleFile) -> Unit, callback: (ExtractorLink) -> Unit): Boolean {
+    override suspend fun loadLinks(
+        data: String,
+        isCasting: Boolean,
+        subtitleCallback: (SubtitleFile) -> Unit,
+        callback: (ExtractorLink) -> Unit
+    ): Boolean {
         val doc = app.get(data).document
         val sources = doc.select("#pornone-video-player source")
-        sources.forEach { item->
+        sources.forEach { item ->
             val src = item.attr("src")
-            val quality = item.attr("res")
-            callback.invoke(newExtractorLink(
-                source = name,
-                name = name,
-                url = src
-            ) {
-                this.referer = ""
-                this.quality = quality.toInt()
-            }
+            val quality = item.attr("res").ifEmpty { "720" }
+            callback.invoke(
+                newExtractorLink(name, name, src, data, quality.toIntOrNull() ?: 720, isM3u8 = src.endsWith(".m3u8"))
             )
         }
-
-
-
         return true
     }
 }
