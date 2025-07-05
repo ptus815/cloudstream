@@ -77,14 +77,21 @@ class Fxggxt : MainAPI() {
         callback: (ExtractorLink) -> Unit
     ): Boolean {
         val doc = app.get(data).document
-        val sources = doc.select("#pornone-video-player source")
+        val sources = doc.select("#fxggxt-video-player source")
         sources.forEach { item ->
             val src = item.attr("src")
             val quality = item.attr("res").ifEmpty { "720" }
             callback.invoke(
-                newExtractorLink(name, name, src, data, quality.toIntOrNull() ?: 720, isM3u8 = src.endsWith(".m3u8"))
+            ExtractorLink(
+                name = name,
+                source = name,
+                url = src,
+                referer = data,
+                quality = quality.toIntOrNull() ?: 720,
+                isM3u8 = false // nếu là .m3u8 bạn có thể đổi true
             )
-        }
-        return true
+        )
     }
+
+    return true
 }
