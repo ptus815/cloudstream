@@ -2,10 +2,11 @@ package com.Fullboys
 
 import com.lagradost.cloudstream3.*
 import com.lagradost.cloudstream3.utils.*
-import com.lagradost.cloudstream3.LoadResponse.Companion.addActors
+import com.lagradost.cloudstream3.utils.loadExtractor
 import org.jsoup.nodes.Element
 import org.json.JSONObject
 import com.lagradost.cloudstream3.utils.newExtractorLink
+
 
 class Fullboys : MainAPI() {
     override var mainUrl              = "https://fullboys.com"
@@ -34,17 +35,13 @@ class Fullboys : MainAPI() {
     )
 
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
-        val url = "${request.data}$page"
-        val doc = app.get(url).document
+        val doc = app.get("${request.data}$page").document
         val items = doc.select("a.col-video").mapNotNull { it.toSearchResult() }
-        return newHomePageResponse(
-            listOf(HomePageList(request.name, items)),
-            hasNext = items.isNotEmpty()
-        )
+        return newHomePageResponse(HomePageList(request.name, items), hasNext = items.isNotEmpty())
     }
 
     private fun Element.toSearchResult(): SearchResponse? {
-        val href = attr("href")
+        val href = attr("href") ?: return null
         val title = selectFirst("p.name-video-list")?.text()?.trim() ?: return null
         val poster = selectFirst("img.img-video-list")?.attr("src") ?: return null
         return newMovieSearchResponse(title, mainUrl + href, TvType.NSFW) {
@@ -58,40 +55,41 @@ class Fullboys : MainAPI() {
         return doc.select("a.col-video").mapNotNull { it.toSearchResult() }
     }
 
-   override suspend fun load(url: String): LoadResponse {
-    val doc = app.get(url).document
+    override suspend fun load(url: String): LoadResponse {
+        val doc = app.get(url).document
 
-    val json = doc.select("script[type=application/ld+json]").joinToString("") { it.data() }
-    val jsonObj = JSONObject(json)
+        val jsonStr = doc.select("script[type=application/ld+json]").joinToString("") { it.data() }
+        val json = JSONObject(jsonStr)
 
-    val title = jsonObj.optString("name", "No Title")
-    val poster = jsonObj.optString("thumbnailUrl")
-    val description = jsonObj.optString("description", "")
-    val videoUrl = jsonObj.optString("contentUrl")
+        val title = json.optString("name", "No Title")
+        val poster = json.optString("thumbnailUrl", "")
+        val description = json.optString("description", "")
 
-    return newMovieLoadResponse(title, url, TvType.NSFW, url) {
-        this.posterUrl = poster
-        this.plot = description
+        return newMovieLoadResponse(title, url, TvType.NSFW, url) {
+            this.posterUrl = poster
+            this.plot = description
+        }
     }
-}
 
     override suspend fun loadLinks(
-    data: String,
-    isCasting: Boolean,
-    subtitleCallback: (SubtitleFile) -> Unit,
-    callback: (ExtractorLink) -> Unit
-): Boolean {
-    val doc = app.get(data).document
-    val videoUrl = doc.selectFirst("video#myvideo")?.attr("src") ?: return false
+        data: String,
+        isCasting: Boolean,
+        subtitleCallback: (SubtitleFile) -> Unit,
+        callback: (ExtractorLink) -> Unit
+    ): Boolean {
+        val doc = app.get(data).document
+        val videoUrl = doc.selectFirst("video#myvideo")?.attr("src") ?: return false
 
-    // Dùng newExtractorLink đơn giản nhất (tự động nhận tham số)
-    callback.invoke(
-        newExtractorLink(
-            name = name,
-            url = videoUrl,
-            referer = data
+        callback.invoke(
+            ExtractorLink(
+                name = name,
+                source = name,
+                url = videoUrl,
+                referer = data,
+                quality = getQualityFromName(videoUrl),
+                isM3u8 = videoUrl.endsWith(".m3u8")
+            )
         )
-    )
-    return true
-  }
+        return true
+    }
 }
