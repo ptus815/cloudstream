@@ -29,68 +29,125 @@ class Fxggxt : MainAPI() {
         "$mainUrl/tag/twink-gay-porn/page/" to "Twink"
     )
 
-    override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
-        val document = app.get("${request.data}$page").document
-        val videos = document.select("article.thumb-block a").mapNotNull { it.toSearchResult() }
-        return newHomePageResponse(HomePageList(request.name, videos, isHorizontalImages = true), hasNext = true)
+    // Sửa: URL cho trang được xử lý chính xác hơn
+override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
+    // request.data sẽ là một phần của URL, ví dụ: "/tag/amateur-gay-porn/"
+    // page là số trang
+    val url = if (page > 1) {
+        // Trang 2 trở đi có định dạng /page/2/
+        "${request.data}page/$page/"
+    } else {
+        // Trang 1 không có số trang trong URL
+        request.data
     }
 
-    private fun Element.toSearchResult(): SearchResponse? {
-        val href = this.attr("href")
-        val title = this.select("header.entry-header span").text()
-        var poster = this.select("img").attr("data-src")
-        if (poster.isNullOrEmpty()) poster = this.select("img").attr("src")
+    val document = app.get(url, timeout = 30).document
+    // Sửa: Sử dụng bộ chọn CSS chính xác cho các mục video
+    val responseList = document.select("article.loop-video.thumb-block").mapNotNull { it.toSearchResult() }
+    return newHomePageResponse(
+        HomePageList(request.name, responseList, isHorizontalImages = true),
+        hasNext = true
+    )
+}
 
-        return newMovieSearchResponse(title, href, TvType.Movie) {
-            this.posterUrl = poster
+private fun Element.toSearchResult(): SearchResponse {
+    // Sửa: Lấy liên kết từ thẻ <a> bên trong
+    val aTag = this.selectFirst("a")
+    val href = aTag?.attr("href") ?: return null // Bỏ qua nếu không có link
+
+    // Sửa: Lấy tiêu đề từ thẻ span bên trong header
+    val title = aTag.selectFirst("header.entry-header span")?.text() ?: "No Title"
+
+    // Sửa: Lấy ảnh bìa từ thuộc tính data-src của thẻ img
+    var posterUrl = aTag.selectFirst(".post-thumbnail-container img")?.attr("data-src")
+    if (posterUrl.isNullOrEmpty()) {
+        posterUrl = aTag.selectFirst(".post-thumbnail-container img")?.attr("src")
+    }
+
+    return newMovieSearchResponse(title, href, TvType.Movie) {
+        this.posterUrl = posterUrl
+    }
+}
+
+   override suspend fun search(query: String): List<SearchResponse> {
+    val searchResponse = mutableListOf<SearchResponse>()
+    // Sửa: Vòng lặp qua các trang kết quả tìm kiếm với URL chính xác
+    for (i in 1..7) {
+        val url = if (i > 1) {
+            "$mainUrl/page/$i/?s=$query"
+        } else {
+            "$mainUrl/?s=$query"
+        }
+        val document = app.get(url, timeout = 30).document
+
+        // Sử dụng lại hàm toSearchResult đã sửa
+        val results = document.select("article.loop-video.thumb-block").mapNotNull { it.toSearchResult() }
+
+        if (results.isEmpty()) {
+            break // Dừng lại nếu không còn kết quả
+        }
+        
+        if (!searchResponse.containsAll(results)) {
+            searchResponse.addAll(results)
+        } else {
+            break
         }
     }
-
-    override suspend fun search(query: String): List<SearchResponse> {
-        val searchResults = mutableListOf<SearchResponse>()
-        for (i in 1..7) {
-            val doc = app.get("$mainUrl/?s=$query&page=$i").document
-            val results = doc.select("article.thumb-block a").mapNotNull { it.toSearchResult() }
-
-            if (results.isEmpty()) break
-            if (!searchResults.containsAll(results)) searchResults.addAll(results) else break
-        }
-        return searchResults
-    }
+    return searchResponse
+}
 
     override suspend fun load(url: String): LoadResponse {
-        val doc = app.get(url).document
-        val title = doc.select("header.entry-header span").text().ifEmpty { "No Title" }
-        val poster = doc.select("div.post-thumbnail img").attr("data-src")
-        val description = doc.select("meta[name=description]").attr("content")
+    val document = app.get(url).document
+    
+    // Sửa: Tìm thẻ script JSON-LD, là nơi chứa thông tin chi tiết
+    val script = document.selectFirst("script[type=\"application/ld+json\"]")?.html() ?: ""
+    val jsonObj = JSONObject(script.substringAfter("{\"@context\":\"https://schema.org\",\"@graph\":").substringBeforeLast("]}") + "]")
+    val videoInfo = jsonObj.getJSONArray("graph").let {
+        var video: JSONObject? = null
+        for (i in 0 until it.length()) {
+            if (it.getJSONObject(i).getString("@type") == "VideoObject") {
+                video = it.getJSONObject(i)
+                break
+            }
+        }
+        video ?: throw Exception("Không tìm thấy VideoObject JSON")
+    }
 
-        return newMovieLoadResponse(title, url, TvType.NSFW, url) {
-            this.posterUrl = poster
-            this.plot = description
+    val title = videoInfo.getString("name")
+    val poster = videoInfo.getString("thumbnailUrl")
+    val description = videoInfo.getString("description")
+    val actors = videoInfo.optJSONArray("actor")?.let {
+        (0 until it.length()).mapNotNull { i ->
+            it.getJSONObject(i).getString("name")
         }
     }
 
+    return newMovieLoadResponse(title, url, TvType.NSFW, url) {
+        this.posterUrl = poster
+        this.plot = description
+        if (actors != null) {
+            addActors(actors)
+        }
+    }
+}
+
     override suspend fun loadLinks(
-        data: String,
-        isCasting: Boolean,
-        subtitleCallback: (SubtitleFile) -> Unit,
-        callback: (ExtractorLink) -> Unit
-    ): Boolean {
-        val doc = app.get(data).document
-        val sources = doc.select("#fxggxt-video-player source")
-        sources.forEach { item ->
-            val src = item.attr("src")
-            val quality = item.attr("res").ifEmpty { "720" }
-            callback.invoke(
-            ExtractorLink(
-                name = name,
-                source = name,
-                url = src,
-                referer = data,
-                quality = quality.toIntOrNull() ?: 720,
-                isM3u8 = false // nếu là .m3u8 bạn có thể đổi true
-            )
-        )
+    data: String, // Đây là URL của trang video, ví dụ: https://fxggxt.com/men-cinderello-part-1-alex-marte-dean-young/
+    isCasting: Boolean,
+    subtitleCallback: (SubtitleFile) -> Unit,
+    callback: (ExtractorLink) -> Unit
+): Boolean {
+    // Tải tài liệu HTML từ URL trang
+    val document = app.get(data).document
+
+    // Sửa: Tìm thẻ iframe bên trong div có class là "responsive-player"
+    val embedUrl = document.selectFirst("div.responsive-player iframe")?.attr("src")
+
+    // Kiểm tra xem URL có được tìm thấy không
+    if (embedUrl != null) {
+        // CloudStream có các trình trích xuất tích hợp cho các máy chủ phổ biến
+        // Chỉ cần gọi loadExtractor với URL của iframe
+        loadExtractor(embedUrl, data, subtitleCallback, callback)
     }
 
     return true
