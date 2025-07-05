@@ -84,39 +84,22 @@ class Fxggxt : MainAPI() {
     }
 
     override suspend fun load(url: String): LoadResponse {
-        val document = app.get(url).document
+    val doc = app.get(url).document
+    val videoElement = doc.selectFirst("article[itemtype='http://schema.org/VideoObject']")
+        ?: throw ErrorLoadingException("Không tìm thấy thẻ video")
 
-        val script = document.selectFirst("script[type=\"application/ld+json\"]")?.html() ?: ""
-        val json = JSONObject(script)
-        val graphArray = json.optJSONArray("@graph") ?: JSONArray()
-        var videoInfo: JSONObject? = null
+    val title = videoElement.selectFirst("meta[itemprop='name']")?.attr("content") ?: "No Title"
+    val poster = videoElement.selectFirst("meta[itemprop='thumbnailUrl']")?.attr("content") ?: ""
+    val description = videoElement.selectFirst("meta[itemprop='description']")?.attr("content") ?: ""
 
-        for (i in 0 until graphArray.length()) {
-            val obj = graphArray.optJSONObject(i)
-            if (obj?.optString("@type") == "VideoObject") {
-                videoInfo = obj
-                break
-            }
-        }
+    val actors = doc.select("#video-actors a").mapNotNull { it.text() }.filter { it.isNotBlank() }
 
-        if (videoInfo == null) throw ErrorLoadingException("Không tìm thấy VideoObject")
-
-        val title = videoInfo.optString("name", "No Title")
-        val poster = videoInfo.optString("thumbnailUrl", "")
-        val description = videoInfo.optString("description", "")
-
-        val actors = videoInfo.optJSONArray("actor")?.let { arr ->
-            List(arr.length()) { i ->
-                arr.getJSONObject(i).optString("name", "")
-            }.filter { it.isNotBlank() }
-        }
-
-        return newMovieLoadResponse(title, url, TvType.NSFW, url) {
-            this.posterUrl = poster
-            this.plot = description
-            if (actors != null) addActors(actors)
-        }
+    return newMovieLoadResponse(title, url, TvType.NSFW, url) {
+        this.posterUrl = poster
+        this.plot = description
+        if (actors.isNotEmpty()) addActors(actors)
     }
+}
 
     override suspend fun loadLinks(
         data: String,
