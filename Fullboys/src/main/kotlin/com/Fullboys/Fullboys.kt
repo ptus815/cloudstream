@@ -103,29 +103,34 @@ class Fullboys : MainAPI() {
         }
     }
 
-    override suspend fun loadLinks(
-        data: String,
-        isCasting: Boolean,
-        subtitleCallback: (SubtitleFile) -> Unit,
-        callback: (ExtractorLink) -> Unit
-    ): Boolean {
-        val document = app.get(data).document
-        
-        val videoElement = document.selectFirst("video#myvideo source")
-        val videoUrl = videoElement?.attr("src") ?: return false
-        
-        // ĐÃ SỬA: Sử dụng cấu trúc ExtractorLink mới
-        callback.invoke(
-            ExtractorLink(
-                name = this.name,
-                source = this.name,
-                url = videoUrl,
-                referer = "$mainUrl/",
-                quality = Qualities.Unknown.value,
-                isM3u8 = videoUrl.contains(".m3u8")
-            )
+   override suspend fun loadLinks(
+    data: String,
+    isCasting: Boolean,
+    subtitleCallback: (SubtitleFile) -> Unit,
+    callback: (ExtractorLink) -> Unit
+): Boolean {
+    val document = app.get(data).document
+    
+    // Cách 1: Lấy trực tiếp từ thẻ video
+    val directUrl = document.selectFirst("video#myvideo")?.attr("src")
+    
+    // Cách 2: Lấy từ thẻ ẩn (dự phòng)
+    val backupUrl = document.selectFirst("input#LinkMedia")?.attr("value")
+    
+    val videoUrl = directUrl ?: backupUrl ?: return false
+
+    callback.invoke(
+        ExtractorLink(
+            name = this.name,
+            source = this.name,
+            url = videoUrl,
+            referer = "$mainUrl/",
+            quality = Qualities.Unknown.value,
+            // Đánh dấu M3U8 nếu là stream
+            isM3u8 = videoUrl.contains(".m3u8")
         )
-        
-        return true
-    }
+    )
+    
+    return true
+  }
 }
