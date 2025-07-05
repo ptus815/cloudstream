@@ -1,13 +1,13 @@
 package com.Fullboys
 
 import android.content.Context
-import com.Fullboys.FullPorner
+import com.Fullboys.Fullboys
 import com.lagradost.cloudstream3.plugins.CloudstreamPlugin
 import com.lagradost.cloudstream3.plugins.Plugin
 
 @CloudstreamPlugin
-class FullPornerProvider : Plugin() {
+class FullboysProvider : Plugin() {
     override fun load(context: Context) {
-        registerMainAPI(FullPorner())
+        registerMainAPI(Fullboys())
     }
 }
