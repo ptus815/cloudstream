@@ -1,6 +1,5 @@
 package com.Fullboys
 
-import org.jsoup.nodes.Element
 import com.lagradost.cloudstream3.*
 import com.lagradost.cloudstream3.utils.*
 import com.lagradost.cloudstream3.LoadResponse.Companion.addActors
@@ -58,51 +57,41 @@ class Fullboys : MainAPI() {
         return doc.select("a.col-video").mapNotNull { it.toSearchResult() }
     }
 
-    override suspend fun load(url: String): LoadResponse {
-        val doc = app.get(url).document
-        val json = doc.select("script[type=application/ld+json]").joinToString("") { it.data() }
-        val jsonObj = JSONObject(json)
+   override suspend fun load(url: String): LoadResponse {
+    val doc = app.get(url).document
 
-        val title = jsonObj.optString("name", "No Title")
-        val poster = jsonObj.optString("thumbnailUrl")
-        val description = jsonObj.optString("description", "")
-        val videoUrl = jsonObj.optString("contentUrl")
+    val json = doc.select("script[type=application/ld+json]").joinToString("") { it.data() }
+    val jsonObj = JSONObject(json)
 
-        return newMovieLoadResponse(title, url, TvType.NSFW, url) {
-            this.posterUrl = poster
-            this.plot = description
-            addDuration(jsonObj.optString("duration"))
-            this.addLinks(
-                ExtractorLink(
-                    name,
-                    name,
-                    videoUrl,
-                    url,
-                    quality = getQualityFromName(videoUrl),
-                    isM3u8 = videoUrl.endsWith(".m3u8")
-                )
-            )
-        }
+    val title = jsonObj.optString("name", "No Title")
+    val poster = jsonObj.optString("thumbnailUrl")
+    val description = jsonObj.optString("description", "")
+    val videoUrl = jsonObj.optString("contentUrl")
+
+    return newMovieLoadResponse(title, url, TvType.NSFW, url) {
+        this.posterUrl = poster
+        this.plot = description
     }
+}
 
     override suspend fun loadLinks(
-        data: String,
-        isCasting: Boolean,
-        subtitleCallback: (SubtitleFile) -> Unit,
-        callback: (ExtractorLink) -> Unit
-    ): Boolean {
-        val doc = app.get(data).document
-        val videoUrl = doc.selectFirst("video#myvideo")?.attr("src") ?: return false
-        callback.invoke(
-            ExtractorLink(
-                name,
-                name,
-                videoUrl,
-                data,
-                quality = getQualityFromName(videoUrl),
-                isM3u8 = videoUrl.endsWith(".m3u8")
-            )
+    data: String,
+    isCasting: Boolean,
+    subtitleCallback: (SubtitleFile) -> Unit,
+    callback: (ExtractorLink) -> Unit
+): Boolean {
+    val doc = app.get(data).document
+    val videoUrl = doc.selectFirst("video#myvideo")?.attr("src") ?: return false
+
+    callback.invoke(
+        newExtractorLink(
+            source = name,
+            name = "Fullboys",
+            url = videoUrl,
+            referer = data,
+            quality = getQualityFromName(videoUrl),
+            isM3u8 = videoUrl.endsWith(".m3u8")
         )
-        return true
-    }
+    )
+    return true
 }
