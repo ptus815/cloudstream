@@ -6,10 +6,10 @@ import com.lagradost.cloudstream3.utils.*
 import com.lagradost.cloudstream3.LoadResponse.Companion.addActors
 
 class FullPorner : MainAPI() {
-    override var mainUrl              = "https://fullporner.com"
-    override var name                 = "FullPorner"
+    override var mainUrl              = "https://fullboys.com"
+    override var name                 = "Fullboys"
     override val hasMainPage          = true
-    override var lang                 = "en"
+    override var lang                 = "vi"
     override val hasQuickSearch       = false
     override val hasDownloadSupport   = true
     override val hasChromecastSupport = true
@@ -17,14 +17,18 @@ class FullPorner : MainAPI() {
     override val vpnStatus            = VPNStatus.MightBeNeeded
 
     override val mainPage = mainPageOf(
-        "${mainUrl}/home/"                to "Featured",
-        "${mainUrl}/category/amateur/"    to "Amateur",
-        "${mainUrl}/category/teen/"       to "Teen",
-        "${mainUrl}/category/cumshot/"    to "CumShot",
-        "${mainUrl}/category/deepthroat/" to "DeepThroat",
-        "${mainUrl}/category/orgasm/"     to "Orgasm",
-        "${mainUrl}/category/threesome/"  to "ThreeSome",
-        "${mainUrl}/category/group-sex/"  to "Group Sex",
+        "${mainUrl}/home/"                   to "Newest",
+        "${mainUrl}/topic/video/asian/"      to "Asian",
+        "${mainUrl}/topic/video/china/"      to "China",
+        "${mainUrl}/topic/video/group/"      to "Group",
+        "${mainUrl}/topic/video/japanese/"   to "Japanese",
+        "${mainUrl}/topic/video/korean/"     to "Korean",
+        "${mainUrl}/topic/video/muscle/"     to "Muscle",
+        "${mainUrl}/topic/video/singapore/"  to "Singapore",
+        "${mainUrl}/topic/video/taiwanese/"  to "Taiwanese",
+        "${mainUrl}/topic/video/thailand/"   to "Thailand",
+        "${mainUrl}/topic/video/threesome/"  to "Treesome",
+        "${mainUrl}/topic/video/viet-nam/"   to "Vietnamese",
     )
 
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
@@ -75,7 +79,7 @@ class FullPorner : MainAPI() {
     val iframeDocument = app.get(iframeUrl).document
 
     val videoID = Regex("""var id = \"(.+?)\"""").find(iframeDocument.html())?.groupValues?.get(1)
-    val pornTrexDocument = app.get("https://www.porntrex.com/embed/${videoID}").document
+    val fullboysDocument = app.get("https://www.fullboys.com/embed/${videoID}").document
     val matchResult = Regex("""preview_url:\s*'([^']+)'""").find(pornTrexDocument.html())
     val poster = matchResult?.groupValues?.get(1)
     val posterUrl = fixUrlNull("https:$poster")
@@ -109,9 +113,9 @@ class FullPorner : MainAPI() {
     val videoID = Regex("""var id = \"(.+?)\"""").find(iframeDocument.html())?.groupValues?.getOrNull(1)
 
     if (videoID != null) {
-        val pornTrexDocument = app.get("https://www.porntrex.com/embed/$videoID").document
+        val fullboysDocument = app.get("https://www.fullboys.com/embed/$videoID").document
         val videoUrlsRegex = Regex("""(?:video_url|video_alt_url2|video_alt_url3): \'(.+?)\',""")
-        val matchResults = videoUrlsRegex.findAll(pornTrexDocument.html())
+        val matchResults = videoUrlsRegex.findAll(fullboysDocument.html())
 
         val videoUrls = matchResults.map { it.groupValues[1] }.toList()
 
