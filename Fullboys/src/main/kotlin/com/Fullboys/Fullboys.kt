@@ -2,10 +2,6 @@ package com.Fullboys
 
 import com.lagradost.cloudstream3.*
 import com.lagradost.cloudstream3.utils.*
-import com.lagradost.cloudstream3.utils.loadExtractor
-import org.jsoup.nodes.Element
-import org.json.JSONObject
-import com.lagradost.cloudstream3.utils.newExtractorLink
 
 class Fullboys : MainAPI() {
     override var mainUrl              = "https://fullboys.com"
@@ -18,27 +14,38 @@ class Fullboys : MainAPI() {
     override val supportedTypes       = setOf(TvType.NSFW)
     override val vpnStatus            = VPNStatus.MightBeNeeded
 
+    // Sửa: Sử dụng đường dẫn tương đối để dễ dàng xử lý phân trang
     override val mainPage = mainPageOf(
-        "${mainUrl}/home/"                   to "Newest",
-        "${mainUrl}/topic/video/asian/"      to "Asian",
-        "${mainUrl}/topic/video/china/"      to "China",
-        "${mainUrl}/topic/video/group/"      to "Group",
-        "${mainUrl}/topic/video/japanese/"   to "Japanese",
-        "${mainUrl}/topic/video/korean/"     to "Korean",
-        "${mainUrl}/topic/video/muscle/"     to "Muscle",
-        "${mainUrl}/topic/video/singapore/"  to "Singapore",
-        "${mainUrl}/topic/video/taiwanese/"  to "Taiwanese",
-        "${mainUrl}/topic/video/thailand/"   to "Thailand",
-        "${mainUrl}/topic/video/threesome/"  to "Treesome",
-        "${mainUrl}/topic/video/viet-nam/"   to "Vietnamese",
+        "/"                   to "Newest",
+        "/topic/video/asian/"      to "Asian",
+        "/topic/video/china/"      to "China",
+        "/topic/video/group/"      to "Group",
+        "/topic/video/japanese/"   to "Japanese",
+        "/topic/video/korean/"     to "Korean",
+        "/topic/video/muscle/"     to "Muscle",
+        "/topic/video/singapore/"  to "Singapore",
+        "/topic/video/taiwanese/"  to "Taiwanese",
+        "/topic/video/thailand/"   to "Thailand",
+        "/topic/video/threesome/"  to "Threesome",
+        "/topic/video/viet-nam/"   to "Vietnamese",
     )
 
-       override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
-        val document = app.get("$mainUrl/${request.data}/$page/").document
-        val home     = document.select("div.list-videos div.item").mapNotNull { it.toSearchResult() }
+    override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
+        // Sửa: Xây dựng URL chính xác cho trang chủ và các danh mục
+        val url = if (page > 1) {
+            // Thêm tham số `page` cho các trang tiếp theo
+            "$mainUrl${request.data}?page=$page"
+        } else {
+            // Trang 1 không cần tham số
+            "$mainUrl${request.data}"
+        }
+        val document = app.get(url).document
+
+        // Sửa: Bộ chọn đúng cho danh sách video là 'a.col-video'
+        val home = document.select("a.col-video").mapNotNull { it.toSearchResult() }
 
         return newHomePageResponse(
-                list    = HomePageList(
+            list    = HomePageList(
                 name    = request.name,
                 list    = home,
                 isHorizontalImages = true
@@ -48,68 +55,72 @@ class Fullboys : MainAPI() {
     }
 
     private fun Element.toSearchResult(): SearchResponse {
-        val title     = this.select("a").attr("title")
-        val href      = this.select("a").attr("href")
-        var posterUrl = this.select("img").attr("src")
-
-        if(posterUrl.contains("data:image")) {
-            posterUrl = this.select("img").attr("data-src")
+        // Sửa: Lấy href từ chính phần tử 'a'
+        val href = this.attr("href")
+        // Sửa: Lấy tiêu đề từ thẻ <p> bên trong
+        val title = this.selectFirst("p.name-video-list")?.text() ?: "N/A"
+        
+        // Sửa: Lấy ảnh bìa từ 'data-cfsrc' (do Cloudflare lazy-load), sau đó mới đến 'src'
+        var posterUrl = this.selectFirst("img.img-video-list")?.attr("data-cfsrc")
+        if (posterUrl.isNullOrEmpty()) {
+            posterUrl = this.selectFirst("img.img-video-list")?.attr("src")
         }
 
         return newMovieSearchResponse(title, href, TvType.Movie) {
             this.posterUrl = posterUrl
+            // Thêm mainUrl vào trước href nếu nó là đường dẫn tương đối
+            this.url = fixUrl(href)
         }
     }
 
     override suspend fun search(query: String): List<SearchResponse> {
         val searchResponse = mutableListOf<SearchResponse>()
-
         for (i in 1..7) {
-            val document = app.get("$mainUrl/search/$i/?q=$query").document
-            val results  = document.select("div.list-videos div.item").mapNotNull { it.toSearchResult() }
+            // Sửa: Định dạng URL tìm kiếm chính xác là `/?search=...&page=...`
+            val document = app.get("$mainUrl/?search=$query&page=$i").document
+            
+            // Sửa: Bộ chọn đúng cho kết quả tìm kiếm là 'a.col-video'
+            val results = document.select("a.col-video").mapNotNull { it.toSearchResult() }
+
+            if (results.isEmpty()) break
 
             if (!searchResponse.containsAll(results)) {
                 searchResponse.addAll(results)
             } else {
                 break
             }
-
-            if (results.isEmpty()) break
         }
-
         return searchResponse
     }
 
     override suspend fun load(url: String): LoadResponse {
         val document = app.get(url).document
-
-        val title       = document.select("meta[property=og:title]").attr("content")
-        val poster      = document.select("meta[property='og:image']").attr("content")
+        
+        // Phần này có vẻ đúng vì trang web sử dụng các thẻ meta og
+        val title = document.select("meta[property=og:title]").attr("content")
+        val poster = document.select("meta[property='og:image']").attr("content")
         val description = document.select("meta[property=og:description]").attr("content")
-
 
         return newMovieLoadResponse(title, url, TvType.Movie, url) {
             this.posterUrl = poster
-            this.plot      = description
+            this.plot = description
         }
     }
 
     override suspend fun loadLinks(data: String, isCasting: Boolean, subtitleCallback: (SubtitleFile) -> Unit, callback: (ExtractorLink) -> Unit): Boolean {
         val document = app.get(data).document
-
-        document.select("video.video-js > source").forEach {
-            val url     = it.attr("src")
-            val quality = it.attr("label").replace("p", "").toIntOrNull() ?: Qualities.Unknown.value
+        
+        // Sửa: Lấy link video trực tiếp từ thuộc tính 'src' của thẻ 'video#myvideo'
+        document.selectFirst("video#myvideo")?.attr("src")?.let { videoUrl ->
             callback.invoke(
                 newExtractorLink(
-                    this.name,
-                    this.name,
-                    url,
-                    type = ExtractorLinkType.VIDEO,
-                ) {
-                    this.quality = quality
-                    this.referer = data
-                }
+                    source = this.name, // Tên nguồn (ví dụ: "Fullboys")
+                    name = this.name, // Tên để hiển thị cho liên kết
+                    url = videoUrl,
+                    referer = data,
+                    // Giả sử chất lượng mặc định vì không có thông tin chất lượng
+                    quality = Qualities.Unknown.value 
+                )
             )
         }
         return true
