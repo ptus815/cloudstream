@@ -4,6 +4,8 @@ import org.jsoup.nodes.Element
 import com.lagradost.cloudstream3.*
 import com.lagradost.cloudstream3.utils.*
 import com.lagradost.cloudstream3.LoadResponse.Companion.addActors
+import org.jsoup.nodes.Element
+import org.json.JSONObject
 
 class Fullboys : MainAPI() {
     override var mainUrl              = "https://fullboys.com"
@@ -32,111 +34,75 @@ class Fullboys : MainAPI() {
     )
 
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
-        val document = app.get("${request.data}${page}").document
-        val home = document.select("div.video-block div.video-card").mapNotNull { it.toSearchResult() }
-
+        val url = "${request.data}$page"
+        val doc = app.get(url).document
+        val items = doc.select("a.col-video").mapNotNull { it.toSearchResult() }
         return newHomePageResponse(
-            list = HomePageList(
-            name = request.name,
-            list = home,
-            isHorizontalImages = true
-            ),
-            hasNext = true
+            listOf(HomePageList(request.name, items)),
+            hasNext = items.isNotEmpty()
         )
     }
 
     private fun Element.toSearchResult(): SearchResponse? {
-        val title = this.selectFirst("div.video-card div.video-card-body div.video-title a")?.text() ?: return null
-        val href = fixUrl(this.selectFirst("div.video-card div.video-card-body div.video-title a")!!.attr("href"))
-        val posterUrl = fixUrlNull(this.select("div.video-card div.video-card-image a img").attr("data-src"))
-
-        return newMovieSearchResponse(title, href, TvType.Movie) { this.posterUrl = posterUrl }
+        val href = attr("href")
+        val title = selectFirst("p.name-video-list")?.text()?.trim() ?: return null
+        val poster = selectFirst("img.img-video-list")?.attr("src") ?: return null
+        return newMovieSearchResponse(title, mainUrl + href, TvType.NSFW) {
+            this.posterUrl = poster
+        }
     }
 
     override suspend fun search(query: String): List<SearchResponse> {
-        val searchResponse = mutableListOf<SearchResponse>()
-
-        for (i in 1..15) {
-            val document = app.get("${mainUrl}/search?q=${query.replace(" ", "+")}&p=$i").document
-
-            val results = document.select("div.video-block div.video-card").mapNotNull { it.toSearchResult() }
-
-            searchResponse.addAll(results)
-
-            if (results.isEmpty()) break
-        }
-
-        return searchResponse
+        val url = "$mainUrl/?search=$query"
+        val doc = app.get(url).document
+        return doc.select("a.col-video").mapNotNull { it.toSearchResult() }
     }
 
     override suspend fun load(url: String): LoadResponse {
-    val document = app.get(url).document
+        val doc = app.get(url).document
+        val json = doc.select("script[type=application/ld+json]").joinToString("") { it.data() }
+        val jsonObj = JSONObject(json)
 
-    val title = document.selectFirst("div.video-block div.single-video-left div.single-video-title h2")?.text()?.trim().toString()
+        val title = jsonObj.optString("name", "No Title")
+        val poster = jsonObj.optString("thumbnailUrl")
+        val description = jsonObj.optString("description", "")
+        val videoUrl = jsonObj.optString("contentUrl")
 
-    val iframeUrl = fixUrlNull(document.selectFirst("div.video-block div.single-video-left div.single-video iframe")?.attr("src")) ?: ""
-
-    val iframeDocument = app.get(iframeUrl).document
-
-    val videoID = Regex("""var id = \"(.+?)\"""").find(iframeDocument.html())?.groupValues?.get(1)
-    val fullboysDocument = app.get("https://www.fullboys.com/embed/${videoID}").document
-    val matchResult = Regex("""preview_url:\s*'([^']+)'""").find(fullboysDocument.html())
-    val poster = matchResult?.groupValues?.get(1)
-    val posterUrl = fixUrlNull("https:$poster")
-
-
-
-    val tags = document.select("div.video-block div.single-video-left div.single-video-title p.tag-link span a").map { it.text() }
-    val description = document.selectFirst("div.video-block div.single-video-left div.single-video-title h2")?.text()?.trim().toString()
-    val actors = document.select("div.video-block div.single-video-left div.single-video-info-content p a").map { it.text() }
-    val recommendations = document.select("div.video-block div.video-recommendation div.video-card").mapNotNull { it.toSearchResult() }
-
-    return newMovieLoadResponse(title, url, TvType.NSFW, url) {
-        this.posterUrl = posterUrl
-        this.plot = description
-        this.tags = tags
-        this.recommendations = recommendations
-        addActors(actors)
-    }
-}
-
-    override suspend fun loadLinks(
-    data: String,
-    isCasting: Boolean,
-    subtitleCallback: (SubtitleFile) -> Unit,
-    callback: (ExtractorLink) -> Unit
-): Boolean {
-    val document = app.get(data).document
-    val iframeUrl = fixUrlNull(document.selectFirst("div.video-block div.single-video-left div.single-video iframe")?.attr("src")) ?: ""
-    val extlinkList = mutableListOf<ExtractorLink>()
-    val iframeDocument = app.get(iframeUrl).document
-    val videoID = Regex("""var id = \"(.+?)\"""").find(iframeDocument.html())?.groupValues?.getOrNull(1)
-
-    if (videoID != null) {
-        val fullboysDocument = app.get("https://www.fullboys.com/embed/$videoID").document
-        val videoUrlsRegex = Regex("""(?:video_url|video_alt_url2|video_alt_url3): \'(.+?)\',""")
-        val matchResults = videoUrlsRegex.findAll(fullboysDocument.html())
-
-        val videoUrls = matchResults.map { it.groupValues[1] }.toList()
-
-        videoUrls.forEach { videoUrl ->
-            extlinkList.add(
-                newExtractorLink(
-                    source = name,
-                    name = name,
-                    url = videoUrl,
-                ) {
-                    this.referer = ""
-                    this.quality = Regex("""_(1080|720|480|360)p\.mp4""")
-                        .find(videoUrl)?.groupValues?.getOrNull(1)?.toIntOrNull()
-                        ?: Qualities.Unknown.value
-                }
+        return newMovieLoadResponse(title, url, TvType.NSFW, url) {
+            this.posterUrl = poster
+            this.plot = description
+            addDuration(jsonObj.optString("duration"))
+            this.addLinks(
+                ExtractorLink(
+                    name,
+                    name,
+                    videoUrl,
+                    url,
+                    quality = getQualityFromName(videoUrl),
+                    isM3u8 = videoUrl.endsWith(".m3u8")
+                )
             )
         }
     }
-    extlinkList.forEach(callback)
 
-    return true
+    override suspend fun loadLinks(
+        data: String,
+        isCasting: Boolean,
+        subtitleCallback: (SubtitleFile) -> Unit,
+        callback: (ExtractorLink) -> Unit
+    ): Boolean {
+        val doc = app.get(data).document
+        val videoUrl = doc.selectFirst("video#myvideo")?.attr("src") ?: return false
+        callback.invoke(
+            ExtractorLink(
+                name,
+                name,
+                videoUrl,
+                data,
+                quality = getQualityFromName(videoUrl),
+                isM3u8 = videoUrl.endsWith(".m3u8")
+            )
+        )
+        return true
     }
-
 }
