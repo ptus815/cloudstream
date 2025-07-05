@@ -5,6 +5,7 @@ import com.lagradost.cloudstream3.utils.*
 import com.lagradost.cloudstream3.LoadResponse.Companion.addActors
 import org.jsoup.nodes.Element
 import org.json.JSONObject
+import com.lagradost.cloudstream3.utils.newExtractorLink
 
 class Fullboys : MainAPI() {
     override var mainUrl              = "https://fullboys.com"
@@ -83,15 +84,14 @@ class Fullboys : MainAPI() {
     val doc = app.get(data).document
     val videoUrl = doc.selectFirst("video#myvideo")?.attr("src") ?: return false
 
+    // Dùng newExtractorLink đơn giản nhất (tự động nhận tham số)
     callback.invoke(
         newExtractorLink(
-            source = name,
-            name = "Fullboys",
+            name = name,
             url = videoUrl,
-            referer = data,
-            quality = getQualityFromName(videoUrl),
-            isM3u8 = videoUrl.endsWith(".m3u8")
+            referer = data
         )
     )
     return true
+  }
 }
