@@ -15,7 +15,6 @@ class Fullboys : MainAPI() {
     override val supportedTypes = setOf(TvType.NSFW)
     override val vpnStatus = VPNStatus.MightBeNeeded
 
-    // Đã sửa: Sử dụng cặp data/name chính xác
     override val mainPage = mainPageOf(
         "/"                   to "Newest",
         "/topic/video/asian/"      to "Asian",
@@ -35,7 +34,6 @@ class Fullboys : MainAPI() {
         page: Int,
         request: MainPageRequest
     ): HomePageResponse {
-        // Đã sửa: Xử lý phân trang chính xác
         val url = if (page == 1) {
             "$mainUrl${request.data}"
         } else {
@@ -43,7 +41,6 @@ class Fullboys : MainAPI() {
         }
         
         val document = app.get(url).document
-        // Đã sửa: Chọn selector chính xác
         val home = document.select("a.col-video").mapNotNull { 
             it.toSearchResult() 
         }
@@ -59,11 +56,9 @@ class Fullboys : MainAPI() {
     }
 
     private fun Element.toSearchResult(): SearchResponse? {
-        // Đã sửa: Xử lý URL và title chính xác
         val href = fixUrl(this.attr("href"))
         val title = this.selectFirst("p.name-video-list")?.text() ?: return null
         
-        // Đã sửa: Xử lý ảnh với Cloudflare
         var posterUrl = this.selectFirst("img.img-video-list")?.attr("data-cfsrc")
         if (posterUrl.isNullOrBlank()) {
             posterUrl = this.selectFirst("img.img-video-list")?.attr("src")
@@ -77,7 +72,6 @@ class Fullboys : MainAPI() {
     override suspend fun search(query: String): List<SearchResponse> {
         val searchResponse = mutableListOf<SearchResponse>()
         
-        // Đã sửa: Tìm kiếm với URL chính xác
         for (page in 1..5) {
             val url = "$mainUrl/?search=$query&page=$page"
             val document = app.get(url).document
@@ -96,7 +90,6 @@ class Fullboys : MainAPI() {
     override suspend fun load(url: String): LoadResponse {
         val document = app.get(url).document
         
-        // Đã sửa: Lấy metadata chính xác
         val title = document.selectFirst("meta[property=og:title]")?.attr("content") 
             ?: document.selectFirst("title")?.text() ?: ""
         val poster = document.selectFirst("meta[property=og:image]")?.attr("content") 
@@ -118,12 +111,12 @@ class Fullboys : MainAPI() {
     ): Boolean {
         val document = app.get(data).document
         
-        // Đã sửa: Lấy video URL chính xác
         val videoElement = document.selectFirst("video#myvideo source")
         val videoUrl = videoElement?.attr("src") ?: return false
         
+        // SỬA LỖI DEPRECATED Ở ĐÂY:
         callback.invoke(
-            ExtractorLink(
+            newExtractorLink( // Sử dụng newExtractorLink thay vì ExtractorLink constructor
                 source = name,
                 name = name,
                 url = videoUrl,
