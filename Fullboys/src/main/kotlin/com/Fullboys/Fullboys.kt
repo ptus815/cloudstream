@@ -80,13 +80,13 @@ class Fullboys : MainAPI() {
     val videoUrl = doc.selectFirst("video#myvideo")?.attr("src") ?: return false
 
     callback.invoke(
-        newExtractorLink(
-            source = name,
-            name = name,
-            url = videoUrl,
-            referer = data,
-            quality = getQualityFromName(videoUrl),
-            isM3u8 = videoUrl.endsWith(".m3u8")
+    ExtractorLink(
+        name,
+        name,
+        videoUrl,
+        data,
+        getQualityFromName(videoUrl),
+        videoUrl.endsWith(".m3u8")
         )
     )
     return true
