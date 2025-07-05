@@ -33,62 +33,85 @@ class Fullboys : MainAPI() {
         "${mainUrl}/topic/video/viet-nam/"   to "Vietnamese",
     )
 
-    override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
-        val doc = app.get("${request.data}$page").document
-        val items = doc.select("a.col-video").mapNotNull { it.toSearchResult() }
-        return newHomePageResponse(HomePageList(request.name, items), hasNext = items.isNotEmpty())
+       override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
+        val document = app.get("$mainUrl/${request.data}/$page/").document
+        val home     = document.select("div.list-videos div.item").mapNotNull { it.toSearchResult() }
+
+        return newHomePageResponse(
+                list    = HomePageList(
+                name    = request.name,
+                list    = home,
+                isHorizontalImages = true
+            ),
+            hasNext = true
+        )
     }
 
-    private fun Element.toSearchResult(): SearchResponse? {
-        val href = attr("href") ?: return null
-        val title = selectFirst("p.name-video-list")?.text()?.trim() ?: return null
-        val poster = selectFirst("img.img-video-list")?.attr("src") ?: return null
-        return newMovieSearchResponse(title, mainUrl + href, TvType.NSFW) {
-            this.posterUrl = poster
+    private fun Element.toSearchResult(): SearchResponse {
+        val title     = this.select("a").attr("title")
+        val href      = this.select("a").attr("href")
+        var posterUrl = this.select("img").attr("src")
+
+        if(posterUrl.contains("data:image")) {
+            posterUrl = this.select("img").attr("data-src")
+        }
+
+        return newMovieSearchResponse(title, href, TvType.Movie) {
+            this.posterUrl = posterUrl
         }
     }
 
     override suspend fun search(query: String): List<SearchResponse> {
-        val url = "$mainUrl/?search=$query"
-        val doc = app.get(url).document
-        return doc.select("a.col-video").mapNotNull { it.toSearchResult() }
+        val searchResponse = mutableListOf<SearchResponse>()
+
+        for (i in 1..7) {
+            val document = app.get("$mainUrl/search/$i/?q=$query").document
+            val results  = document.select("div.list-videos div.item").mapNotNull { it.toSearchResult() }
+
+            if (!searchResponse.containsAll(results)) {
+                searchResponse.addAll(results)
+            } else {
+                break
+            }
+
+            if (results.isEmpty()) break
+        }
+
+        return searchResponse
     }
 
     override suspend fun load(url: String): LoadResponse {
-        val doc = app.get(url).document
+        val document = app.get(url).document
 
-        val jsonStr = doc.select("script[type=application/ld+json]").joinToString("") { it.data() }
-        val json = JSONObject(jsonStr)
+        val title       = document.select("meta[property=og:title]").attr("content")
+        val poster      = document.select("meta[property='og:image']").attr("content")
+        val description = document.select("meta[property=og:description]").attr("content")
 
-        val title = json.optString("name", "No Title")
-        val poster = json.optString("thumbnailUrl", "")
-        val description = json.optString("description", "")
 
-        return newMovieLoadResponse(title, url, TvType.NSFW, url) {
+        return newMovieLoadResponse(title, url, TvType.Movie, url) {
             this.posterUrl = poster
-            this.plot = description
+            this.plot      = description
         }
     }
 
-   override suspend fun loadLinks(
-    data: String,
-    isCasting: Boolean,
-    subtitleCallback: (SubtitleFile) -> Unit,
-    callback: (ExtractorLink) -> Unit
-): Boolean {
-    val doc = app.get(data).document
-    val videoUrl = doc.selectFirst("video#myvideo")?.attr("src") ?: return false
+    override suspend fun loadLinks(data: String, isCasting: Boolean, subtitleCallback: (SubtitleFile) -> Unit, callback: (ExtractorLink) -> Unit): Boolean {
+        val document = app.get(data).document
 
-    callback.invoke(
-    ExtractorLink(
-        name,
-        name,
-        videoUrl,
-        data,
-        getQualityFromName(videoUrl),
-        videoUrl.endsWith(".m3u8")
-        )
-    )
-    return true
+        document.select("video.video-js > source").forEach {
+            val url     = it.attr("src")
+            val quality = it.attr("label").replace("p", "").toIntOrNull() ?: Qualities.Unknown.value
+            callback.invoke(
+                newExtractorLink(
+                    this.name,
+                    this.name,
+                    url,
+                    type = ExtractorLinkType.VIDEO,
+                ) {
+                    this.quality = quality
+                    this.referer = data
+                }
+            )
+        }
+        return true
     }
 }
