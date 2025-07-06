@@ -46,14 +46,13 @@ class Fullboys : MainAPI() {
         val image = selectFirst("img")?.let {
             it.attr("data-cfsrc").takeIf { it.isNotBlank() } ?: it.attr("src")
         }
-        val duration = selectFirst(".duration")?.text().orEmpty()
+    
         return MovieSearchResponse(
             name = name,
             url = url,
             apiName = this@Fullboys.name,
             type = TvType.NSFW,
-            posterUrl = image,
-            quality = getQualityFromString(duration)?.value
+            posterUrl = image
         )
     }
 
