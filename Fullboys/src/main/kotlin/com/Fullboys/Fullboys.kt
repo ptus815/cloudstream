@@ -11,6 +11,7 @@ import com.lagradost.cloudstream3.utils.getQualityFromName
 import com.lagradost.cloudstream3.utils.newExtractorLink
 import com.lagradost.cloudstream3.utils.ExtractorApi
 import com.lagradost.cloudstream3.utils.ExtractorLink
+import com.lagradost.cloudstream3.utils.newExtractorLink
 
 class Fullboys : MainAPI() {
     override var mainUrl = "https://fullboys.com"
@@ -89,7 +90,7 @@ class Fullboys : MainAPI() {
         }
     }
 
-    override suspend fun loadLinks(
+   override suspend fun loadLinks(
         data: String,
         isCasting: Boolean,
         subtitleCallback: (SubtitleFile) -> Unit,
@@ -101,14 +102,14 @@ class Fullboys : MainAPI() {
         val videoUrl = Regex("""video=(https[^&]+)""").find(iframeSrc)?.groupValues?.get(1)
         if (videoUrl != null) {
             callback(
-                newExtractorLink(
-                    name = "Fullboys",
-                    source = "Fullboys",
-                    url = videoUrl,
-                    referer = data,
-                    quality = Qualities.Unknown.value,
-                    isM3u8 = videoUrl.endsWith(".m3u8")
-                )
+                newExtractorLink {
+                    this.name = "Fullboys"
+                    this.source = "Fullboys"
+                    this.url = videoUrl
+                    this.referer = data
+                    this.quality = Qualities.Unknown.value
+                    this.isM3u8 = videoUrl.endsWith(".m3u8")
+                }
             )
         }
         return true
