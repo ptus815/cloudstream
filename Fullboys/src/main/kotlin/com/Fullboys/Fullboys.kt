@@ -3,14 +3,6 @@ package com.Fullboys
 import com.lagradost.cloudstream3.*
 import com.lagradost.cloudstream3.utils.*
 import org.jsoup.nodes.Element
-import org.json.JSONObject
-import com.lagradost.cloudstream3.utils.INFER_TYPE
-import com.lagradost.cloudstream3.utils.M3u8Helper
-import com.lagradost.cloudstream3.utils.Qualities
-import com.lagradost.cloudstream3.utils.getQualityFromName
-import com.lagradost.cloudstream3.utils.newExtractorLink
-import com.lagradost.cloudstream3.utils.ExtractorApi
-import com.lagradost.cloudstream3.utils.ExtractorLink
 
 class Fullboys : MainAPI() {
     override var mainUrl = "https://fullboys.com"
@@ -38,24 +30,43 @@ class Fullboys : MainAPI() {
         "/topic/video/viet-nam/" to "Vietnamese",
     )
 
-    override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
-        val document = app.get("$mainUrl${request.data}$page/").document
-        val home = document.select("article.movie-item").mapNotNull { it.toSearchResult() }
+    override suspend fun getMainPage(
+        page: Int,
+        request: MainPageRequest
+    ): HomePageResponse {
+        val url = if (page == 1) {
+            "$mainUrl${request.data}"
+        } else {
+            "$mainUrl${request.data}?page=$page"
+        }
+        
+        val document = app.get(url).document
+        val home = document.select("a.col-video").mapNotNull { 
+            it.toSearchResult() 
+        }
+
         return newHomePageResponse(
             list = HomePageList(
                 name = request.name,
                 list = home,
                 isHorizontalImages = true
             ),
-            hasNext = true
+            hasNext = home.isNotEmpty()
         )
     }
 
     private fun Element.toSearchResult(): SearchResponse? {
-        val aTag = this.selectFirst("a") ?: return null
-        val title = this.selectFirst("h2.title")?.text() ?: return null
-        val href = mainUrl + aTag.attr("href")
-        val posterUrl = this.selectFirst("img")?.attr("src")
+        val href = fixUrl(this.attr("href"))
+        val title = this.selectFirst("p.name-video-list")?.text() ?: return null
+        
+        // Xử lý ảnh với Cloudflare
+        val img = this.selectFirst("img.img-video-list")
+        val posterUrl = when {
+            img?.hasAttr("data-cfsrc") == true -> img.attr("data-cfsrc")
+            img?.hasAttr("src") == true -> img.attr("src")
+            else -> ""
+        }
+        
         return newMovieSearchResponse(title, href, TvType.Movie) {
             this.posterUrl = posterUrl
         }
@@ -63,54 +74,85 @@ class Fullboys : MainAPI() {
 
     override suspend fun search(query: String): List<SearchResponse> {
         val searchResponse = mutableListOf<SearchResponse>()
-        for (i in 1..7) {
-            val document = app.get("$mainUrl/search/video/?s=$query&page=$i").document
-            val results = document.select("article.movie-item").mapNotNull { it.toSearchResult() }
+        var currentPage = 1
+        
+        while (currentPage <= 5) {
+            val url = "$mainUrl/?search=${query.encodeURL()}&page=$currentPage"
+            val document = app.get(url).document
+            
+            val results = document.select("a.col-video").mapNotNull { 
+                it.toSearchResult() 
+            }
+            
             if (results.isEmpty()) break
-            if (!searchResponse.containsAll(results)) {
-                searchResponse.addAll(results)
-            } else break
+            
+            searchResponse.addAll(results)
+            currentPage++
         }
-        return searchResponse
+        
+        return searchResponse.distinctBy { it.url }
     }
 
     override suspend fun load(url: String): LoadResponse {
-        val doc = app.get(url).document
-        val jsonData = doc.select("script[type=application/ld+json]").html()
-        val json = JSONObject(jsonData)
+        val document = app.get(url).document
+        
+        val title = document.selectFirst("meta[property=og:title]")?.attr("content") 
+            ?: document.selectFirst("title")?.text() ?: "No Title"
+            
+        val poster = document.selectFirst("meta[property=og:image]")?.attr("content") 
+            ?: ""
+            
+        val description = document.selectFirst("meta[property=og:description]")?.attr("content") 
+            ?: ""
 
-        val title = json.optString("name", "No Title")
-        val poster = json.optString("thumbnailUrl", "")
-        val description = json.optString("description", "")
-
-        return newMovieLoadResponse(title, url, TvType.NSFW, url) {
+        return newMovieLoadResponse(title, url, TvType.Movie, url) {
             this.posterUrl = poster
             this.plot = description
         }
     }
 
-   override suspend fun loadLinks(
+    override suspend fun loadLinks(
         data: String,
         isCasting: Boolean,
         subtitleCallback: (SubtitleFile) -> Unit,
         callback: (ExtractorLink) -> Unit
     ): Boolean {
         val document = app.get(data).document
-        val iframeSrc = document.selectFirst("iframe#ifvideo")?.attr("src") ?: return false
-
-        val videoUrl = Regex("""video=(https[^&]+)""").find(iframeSrc)?.groupValues?.get(1)
-        if (videoUrl != null) {
-            callback(
-               ExtractorLink {
-                    this.name = "Fullboys"
-                    this.source = "Fullboys"
-                    this.url = videoUrl
-                    this.referer = data
-                    this.quality = Qualities.Unknown.value
-                    this.isM3u8 = videoUrl.endsWith(".m3u8")
-                }
-            )
+        
+        // Cách 1: Lấy từ thẻ video source
+        val directSource = document.selectFirst("video#myvideo source")?.attr("src")
+        if (!directSource.isNullOrBlank()) {
+            callback(createExtractorLink(directSource))
+            return true
         }
-        return true
+        
+        // Cách 2: Tìm trong thẻ script
+        val scriptContent = document.select("script").map { it.html() }
+            .find { it.contains("video_url") || it.contains("file:") }
+        
+        scriptContent?.let { script ->
+            // Regex tìm URL video
+            val videoRegex = Regex("""(https?://[^"'\\s]+\.(?:mp4|m3u8))""")
+            val matches = videoRegex.findAll(script)
+            
+            matches.forEach { match ->
+                val videoUrl = match.value
+                callback(createExtractorLink(videoUrl))
+            }
+            
+            if (matches.any()) return true
+        }
+        
+        return false
+    }
+    
+    private fun createExtractorLink(url: String): ExtractorLink {
+        return ExtractorLink(
+            source = name,
+            name = name,
+            url = url,
+            referer = "$mainUrl/",
+            quality = Qualities.Unknown.value
+        )
     }
 }
