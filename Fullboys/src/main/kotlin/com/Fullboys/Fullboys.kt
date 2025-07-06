@@ -27,7 +27,7 @@ class Fullboys : MainAPI() {
         val suffix = if (page <= 1) "" else "?page=$page"
         val doc = app.get(mainUrl + request.data + suffix).document
         val items = doc.select("a.col-video").mapNotNull { it.toSearchItem() }
-        return newHomePageResponse(
+        return HomePageResponse(
             listOf(HomePageList(request.name, items, isHorizontalImages = true)),
             hasNext = items.isNotEmpty()
         )
@@ -40,25 +40,25 @@ class Fullboys : MainAPI() {
 
     private fun Element.toSearchItem(): SearchResponse? {
         val url = fixUrl(attr("href"))
-        val title = selectFirst("p.name-video-list")?.text() ?: return null
+        val name = selectFirst("p.name-video-list")?.text() ?: return null
         val image = selectFirst("img")?.let {
             it.attr("data-cfsrc").takeIf { it.isNotBlank() } ?: it.attr("src")
         }
         val duration = selectFirst(".duration")?.text().orEmpty()
         return MovieSearchResponse(
-            title = title,
+            name = name,
             url = url,
             apiName = this@Fullboys.name,
             type = TvType.NSFW,
             posterUrl = image,
-            quality = getQualityFromString(duration)
+            quality = getQualityFromString(duration)?.value
         )
     }
 
     override suspend fun load(url: String): LoadResponse? {
         val doc = app.get(url).document
 
-        val title = doc.selectFirst("h1.title-detail-media")?.text() ?: return null
+        val name = doc.selectFirst("h1.title-detail-media")?.text() ?: return null
         val videoUrl = doc.select("video#myvideo").attr("src")
         val posterUrl = doc.select("video#myvideo").attr("poster")
         val description = doc.selectFirst("meta[name=description]")?.attr("content").orEmpty()
@@ -68,27 +68,32 @@ class Fullboys : MainAPI() {
         }
 
         val recommendations = doc.select(".box-list-video .col-video").mapNotNull {
-            val name = it.selectFirst("p.name-video-list")?.text() ?: return@mapNotNull null
-            val href = fixUrl(it.attr("href"))
-            val thumb = it.selectFirst("img")?.let {
+            val recName = it.selectFirst("p.name-video-list")?.text() ?: return@mapNotNull null
+            val recUrl = fixUrl(it.attr("href"))
+            val recThumb = it.selectFirst("img")?.let {
                 it.attr("data-cfsrc").takeIf { it.isNotBlank() } ?: it.attr("src")
             }
             MovieSearchResponse(
-                title = name,
-                url = href,
+                name = recName,
+                url = recUrl,
                 apiName = this@Fullboys.name,
                 type = TvType.NSFW,
-                posterUrl = thumb
+                posterUrl = recThumb
             )
         }
 
-        return newMovieLoadResponse(title, url, TvType.NSFW) {
-            this.posterUrl = posterUrl
-            this.backgroundPosterUrl = previewImages.firstOrNull()
-            this.plot = description
-            this.tags = tags
-            this.recommendations = recommendations
-        }
+        return MovieLoadResponse(
+            name = name,
+            url = url,
+            apiName = this.name,
+            type = TvType.NSFW,
+            dataUrl = videoUrl,
+            posterUrl = posterUrl,
+            backgroundPosterUrl = previewImages.firstOrNull(),
+            plot = description,
+            tags = tags,
+            recommendations = recommendations
+        )
     }
 
     override suspend fun loadLinks(
@@ -97,13 +102,13 @@ class Fullboys : MainAPI() {
         subtitleCallback: (SubtitleFile) -> Unit,
         callback: (ExtractorLink) -> Unit
     ): Boolean {
-        callback.invoke(
+        callback(
             ExtractorLink(
                 source = name,
                 name = "Fullboys Stream",
                 url = data,
                 referer = mainUrl,
-                quality = Qualities.Unknown,
+                quality = Qualities.Unknown.value,
                 isM3u8 = false
             )
         )
