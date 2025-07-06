@@ -4,6 +4,13 @@ import com.lagradost.cloudstream3.*
 import com.lagradost.cloudstream3.utils.*
 import org.jsoup.nodes.Element
 import org.json.JSONObject
+import com.lagradost.cloudstream3.utils.INFER_TYPE
+import com.lagradost.cloudstream3.utils.M3u8Helper
+import com.lagradost.cloudstream3.utils.Qualities
+import com.lagradost.cloudstream3.utils.getQualityFromName
+import com.lagradost.cloudstream3.utils.newExtractorLink
+import com.lagradost.cloudstream3.utils.ExtractorApi
+import com.lagradost.cloudstream3.utils.ExtractorLink
 
 class Fullboys : MainAPI() {
     override var mainUrl = "https://fullboys.com"
@@ -82,12 +89,27 @@ class Fullboys : MainAPI() {
         }
     }
 
-    override suspend fun loadLinks(data: String, isCasting: Boolean, subtitleCallback: (SubtitleFile) -> Unit, callback: (ExtractorLink) -> Unit): Boolean {
+    override suspend fun loadLinks(
+        data: String,
+        isCasting: Boolean,
+        subtitleCallback: (SubtitleFile) -> Unit,
+        callback: (ExtractorLink) -> Unit
+    ): Boolean {
         val document = app.get(data).document
-        document.select("#video-code iframe").forEach { links ->
-            val url=links.attr("src")
-            Log.d("GayXXX Test",url)
-            loadExtractor(url,subtitleCallback, callback)
+        val iframeSrc = document.selectFirst("iframe#ifvideo")?.attr("src") ?: return false
+
+        val videoUrl = Regex("""video=(https[^&]+)""").find(iframeSrc)?.groupValues?.get(1)
+        if (videoUrl != null) {
+            callback(
+                newExtractorLink(
+                    name = "Fullboys",
+                    source = "Fullboys",
+                    url = videoUrl,
+                    referer = data,
+                    quality = Qualities.Unknown.value,
+                    isM3u8 = videoUrl.endsWith(".m3u8")
+                )
+            )
         }
         return true
     }
