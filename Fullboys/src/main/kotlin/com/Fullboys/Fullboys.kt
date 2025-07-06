@@ -42,7 +42,6 @@ class Fullboys : MainAPI() {
 
     private fun Element.toSearchItem(): SearchResponse? {
         val url = fixUrl(attr("href"))
-        ("FULLBOYS","Raw: ${this.outerHtml()}")
         val name = selectFirst("title")?.text() ?: return null
         val image = selectFirst("img")?.let {
             it.attr("data-cfsrc").takeIf { it.isNotBlank() } ?: it.attr("src")
