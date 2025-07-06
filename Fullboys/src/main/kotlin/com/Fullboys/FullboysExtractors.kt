@@ -1,47 +1,114 @@
-
 package com.Fullboys
 
-import com.lagradost.cloudstream3.app
-import com.lagradost.cloudstream3.extractors.VidhideExtractor
-import com.lagradost.cloudstream3.extractors.Contabostorage
-import com.lagradost.cloudstream3.utils.ExtractorApi
-import com.lagradost.cloudstream3.utils.ExtractorLink
-import com.lagradost.cloudstream3.utils.Qualities
+import com.lagradost.cloudstream3.*
 import com.lagradost.cloudstream3.utils.*
+import org.jsoup.nodes.Element
+import org.json.JSONObject
+import com.lagradost.cloudstream3.utils.INFER_TYPE
+import com.lagradost.cloudstream3.utils.M3u8Helper
+import com.lagradost.cloudstream3.utils.Qualities
+import com.lagradost.cloudstream3.utils.getQualityFromName
+import com.lagradost.cloudstream3.utils.newExtractorLink
 
-open class Contabostorage : ExtractorApi() {
-    override var name = "Contabostorage"
-    override var mainUrl = "https://sin1.contabostorage.com/"
-    override val requiresReferer = false
+class Fullboys : MainAPI() {
+    override var mainUrl = "https://fullboys.com"
+    override var name = "Fullboys"
+    override val hasMainPage = true
+    override var lang = "vi"
+    override val hasQuickSearch = false
+    override val hasDownloadSupport = true
+    override val hasChromecastSupport = true
+    override val supportedTypes = setOf(TvType.NSFW)
+    override val vpnStatus = VPNStatus.MightBeNeeded
 
+    override val mainPage = mainPageOf(
+        "/" to "Newest",
+        "/topic/video/asian/" to "Asian",
+        "/topic/video/china/" to "China",
+        "/topic/video/group/" to "Group",
+        "/topic/video/japanese/" to "Japanese",
+        "/topic/video/korean/" to "Korean",
+        "/topic/video/muscle/" to "Muscle",
+        "/topic/video/singapore/" to "Singapore",
+        "/topic/video/taiwanese/" to "Taiwanese",
+        "/topic/video/thailand/" to "Thailand",
+        "/topic/video/threesome/" to "Threesome",
+        "/topic/video/viet-nam/" to "Vietnamese",
+    )
 
+    override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
+        val document = app.get("$mainUrl${request.data}$page/").document
+        val home = document.select("article.movie-item").mapNotNull { it.toSearchResult() }
+        return newHomePageResponse(
+            list = HomePageList(
+                name = request.name,
+                list = home,
+                isHorizontalImages = true
+            ),
+            hasNext = true
+        )
+    }
 
-    override suspend fun getUrl(url: String, referer: String?): List<ExtractorLink>? {
-        with(app.get(url)) {
-            this.document.let { document ->
-                val finalLink = document.select("iframe#ifvideo").attr("src")
-                return listOf(
-                      ExtractorLink(
-                        source = name,
-                        name = name,
-                        url = httpsify(finalLink),
-                        ExtractorLinkType.M3U8
-                    ) {
-                        this.referer = url
-                        this.quality = Qualities.Unknown.value
-                    }
-                )
-            }
+    private fun Element.toSearchResult(): SearchResponse? {
+        val aTag = this.selectFirst("a") ?: return null
+        val title = this.selectFirst("h2.title")?.text() ?: return null
+        val href = mainUrl + aTag.attr("href")
+        val posterUrl = this.selectFirst("img")?.attr("src")
+        return newMovieSearchResponse(title, href, TvType.Movie) {
+            this.posterUrl = posterUrl
         }
-        return null
-    }
     }
 
+    override suspend fun search(query: String): List<SearchResponse> {
+        val searchResponse = mutableListOf<SearchResponse>()
+        for (i in 1..7) {
+            val document = app.get("$mainUrl/search/video/?s=$query&page=$i").document
+            val results = document.select("article.movie-item").mapNotNull { it.toSearchResult() }
+            if (results.isEmpty()) break
+            if (!searchResponse.containsAll(results)) {
+                searchResponse.addAll(results)
+            } else break
+        }
+        return searchResponse
+    }
 
+    override suspend fun load(url: String): LoadResponse {
+        val doc = app.get(url).document
+        val jsonData = doc.select("script[type=application/ld+json]").html()
+        val json = JSONObject(jsonData)
 
+        val title = json.optString("name", "No Title")
+        val poster = json.optString("thumbnailUrl", "")
+        val description = json.optString("description", "")
 
-class Pub : VidhideExtractor() {
-    override var name = "Pub"
-    override var mainUrl = "https://pub-bfa45585fe66485c873db2f46c452a48.r2.dev/"
-    override val requiresReferer = false
+        return newMovieLoadResponse(title, url, TvType.NSFW, url) {
+            this.posterUrl = poster
+            this.plot = description
+        }
+    }
+
+    override suspend fun loadLinks(
+        data: String,
+        isCasting: Boolean,
+        subtitleCallback: (SubtitleFile) -> Unit,
+        callback: (ExtractorLink) -> Unit
+    ): Boolean {
+        val document = app.get(data).document
+        val iframeSrc = document.selectFirst("iframe#ifvideo")?.attr("src") ?: return false
+
+        val videoUrl = Regex("""video=(https[^&]+)""").find(iframeSrc)?.groupValues?.get(1)
+        if (videoUrl != null) {
+            callback(
+                newExtractorLink(
+                    name = "Fullboys",
+                    source = "Fullboys",
+                    url = videoUrl,
+                    referer = data,
+                    quality = Qualities.Unknown.value,
+                    isM3u8 = videoUrl.endsWith(".m3u8")
+                )
+            )
+        }
+        return true
+    }
 }
