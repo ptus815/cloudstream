@@ -2,14 +2,14 @@ package com.Fullboys
 
 import com.lagradost.cloudstream3.*
 import com.lagradost.cloudstream3.utils.*
+import com.lagradost.cloudstream3.network.*
 import org.jsoup.nodes.Element
-import java.net.URLEncoder
 
 class Fullboys : MainAPI() {
     override var mainUrl = "https://fullboys.com"
     override var name = "Fullboys"
     override val hasMainPage = true
-    override var lang = "vi"
+    override var lang = "en"
     override val hasQuickSearch = false
     override val hasDownloadSupport = true
     override val hasChromecastSupport = true
@@ -70,41 +70,59 @@ class Fullboys : MainAPI() {
         }
     }
 
+
     override suspend fun search(query: String): List<SearchResponse> {
-        val searchResponse = mutableListOf<SearchResponse>()
-        
-        // SỬA LỖI encodeURL: Sử dụng URLEncoder chuẩn
-        val encodedQuery = URLEncoder.encode(query, "UTF-8")
-        
-        for (page in 1..5) {
-            val url = "$mainUrl/?search=$encodedQuery&page=$page"
-            val document = app.get(url).document
-            
-            val results = document.select("a.col-video").mapNotNull { 
-                it.toSearchResult() 
-            }
-            
-            if (results.isEmpty()) break
-            searchResponse.addAll(results)
+        val doc = app.get("$mainUrl/home?search=$query").document
+        return doc.select(".col-video").mapNotNull {
+            val title = it.selectFirst("p.name-video-list")?.text() ?: return@mapNotNull null
+            val link = fixUrl(it.attr("href"))
+            val poster = it.selectFirst("img")?.absUrl("data-cfsrc")
+            val duration = it.selectFirst(".duration")?.text()
+
+            MovieSearchResponse(
+                title = title,
+                url = link,
+                apiName = this.name,
+                type = TvType.NSFW,
+                posterUrl = poster,
+                quality = getQualityFromString(duration ?: "")
+            )
         }
-        
-        return searchResponse
     }
 
-    override suspend fun load(url: String): LoadResponse {
-        val document = app.get(url).document
-        
-        val title = document.selectFirst("meta[property=og:title]")?.attr("content") 
-            ?: document.selectFirst("title")?.text() ?: ""
-        val poster = document.selectFirst("meta[property=og:image]")?.attr("content") 
-            ?: ""
-        val description = document.selectFirst("meta[property=og:description]")?.attr("content") 
-            ?: ""
+    override suspend fun load(url: String): LoadResponse? {
+        val doc = app.get(url).document
+        val title = doc.selectFirst("h1.title-detail-media")?.text() ?: return null
+        val videoUrl = doc.select("video#myvideo").attr("src")
+        val posterUrl = doc.select("video#myvideo").attr("poster")
+        val description = doc.selectFirst("meta[name=description]")?.attr("content") ?: ""
+        val tags = doc.select("footer .box-tag a").map { it.text() }
 
-        return newMovieLoadResponse(title, url, TvType.Movie, url) {
-            this.posterUrl = poster
-            this.plot = description
+        val previewImages = doc.select(".gallery-row-scroll .img-review").map {
+            it.absUrl("data-cfsrc")
         }
+
+        val recommendations = doc.select(".box-list-video .col-video").mapNotNull {
+            val name = it.selectFirst("p.name-video-list")?.text() ?: return@mapNotNull null
+            val recUrl = fixUrl(it.attr("href"))
+            val recPoster = it.selectFirst("img")?.absUrl("data-cfsrc")
+
+            TvSeriesSearchResponse(
+                title = name,
+                url = recUrl,
+                apiName = this.name,
+                type = TvType.NSFW,
+                posterUrl = recPoster
+            )
+        }
+
+        return newMovieLoadResponse(title, url, TvType.NSFW) {
+            this.posterUrl = posterUrl
+            this.backgroundPosterUrl = previewImages.firstOrNull()
+            this.plot = description
+            this.tags = tags
+            this.recommendations = recommendations
+        }.addTrailer(videoUrl)
     }
 
     override suspend fun loadLinks(
@@ -112,45 +130,15 @@ class Fullboys : MainAPI() {
         isCasting: Boolean,
         subtitleCallback: (SubtitleFile) -> Unit,
         callback: (ExtractorLink) -> Unit
-    ): Boolean {
-        val document = app.get(data).document
-        
-        // CÁCH 1: Từ thẻ video
-        var videoUrl = document.selectFirst("video#myvideo source")?.attr("src")
-        
-        // CÁCH 2: Từ thẻ script
-        if (videoUrl.isNullOrBlank()) {
-            videoUrl = document.select("script:containsData(video)")
-                .firstOrNull()
-                ?.data()
-                ?.substringAfter("file: \"")
-                ?.substringBefore("\"")
-        }
-        
-        // CÁCH 3: Từ regex
-        if (videoUrl.isNullOrBlank()) {
-            videoUrl = document.select("script").map { it.html() }
-                .find { it.contains("video") }
-                ?.let { 
-                    Regex("""file:\s*["'](https?://[^"']+)["']""")
-                        .find(it)?.groupValues?.get(1)
-                }
-        }
-        
-        if (videoUrl.isNullOrBlank()) return false
-        
-        // SỬA LỖI DEPRECATED: Sử dụng ExtractorLink với cấu trúc mới
+    ) {
         callback.invoke(
             ExtractorLink(
-                source = name,
-                name = "Fullboys Video",
-                url = videoUrl,
-                referer = "$mainUrl/",
-                quality = Qualities.Unknown.value,
-                isM3u8 = videoUrl.contains(".m3u8")
+                name = "Fullboys",
+                source = "fullboys.com",
+                url = data,
+                quality = Qualities.Unknown,
+                isM3u8 = false
             )
         )
-        
-        return true
     }
 }
