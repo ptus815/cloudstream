@@ -18,67 +18,77 @@ class Fullboys : MainAPI() {
     override val mainPage = mainPageOf(
         "/" to "Newest",
         "/topic/video/asian/" to "Asian",
-        "/topic/video/china/" to "China",
-        "/topic/video/group/" to "Group",
-        "/topic/video/japanese/" to "Japanese",
         "/topic/video/korean/" to "Korean",
         "/topic/video/muscle/" to "Muscle",
-        "/topic/video/singapore/" to "Singapore",
-        "/topic/video/taiwanese/" to "Taiwanese",
-        "/topic/video/thailand/" to "Thailand",
-        "/topic/video/threesome/" to "Threesome",
         "/topic/video/viet-nam/" to "Vietnamese"
     )
 
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
         val suffix = if (page <= 1) "" else "?page=$page"
-        val doc = app.get("$mainUrl${request.data}$suffix").document
-        val items = doc.select("a.col-video").mapNotNull(Element::toSearchResult)
+        val doc = app.get(mainUrl + request.data + suffix).document
+        val items = doc.select("a.col-video").mapNotNull { it.toSearchItem() }
         return newHomePageResponse(
             listOf(HomePageList(request.name, items, isHorizontalImages = true)),
             hasNext = items.isNotEmpty()
         )
     }
 
-    private fun Element.toSearchResult(): SearchResponse? {
-        val href = fixUrl(attr("href"))
-        val title = selectFirst("p.name-video-list")?.text() ?: return null
-        val img = selectFirst("img.img-video-list")
-        val poster = img?.attr("data-cfsrc").ifEmpty { img?.attr("src") }
-        val duration = selectFirst(".duration")?.text().orEmpty()
-        return newMovieSearchResponse(title, href, TvType.Movie) {
-            posterUrl = poster
-            quality = getQualityFromString(duration)
-        }
-    }
-
     override suspend fun search(query: String): List<SearchResponse> {
         val doc = app.get("$mainUrl/home?search=$query").document
-        return doc.select("a.col-video").mapNotNull(Element::toSearchResult)
+        return doc.select("a.col-video").mapNotNull { it.toSearchItem() }
+    }
+
+    private fun Element.toSearchItem(): SearchResponse? {
+        val url = fixUrl(attr("href"))
+        val title = selectFirst("p.name-video-list")?.text() ?: return null
+        val image = selectFirst("img")?.let {
+            it.attr("data-cfsrc").takeIf { it.isNotBlank() } ?: it.attr("src")
+        }
+        val duration = selectFirst(".duration")?.text().orEmpty()
+        return MovieSearchResponse(
+            title = title,
+            url = url,
+            apiName = this@Fullboys.name,
+            type = TvType.NSFW,
+            posterUrl = image,
+            quality = getQualityFromString(duration)
+        )
     }
 
     override suspend fun load(url: String): LoadResponse? {
         val doc = app.get(url).document
+
         val title = doc.selectFirst("h1.title-detail-media")?.text() ?: return null
         val videoUrl = doc.select("video#myvideo").attr("src")
         val posterUrl = doc.select("video#myvideo").attr("poster")
         val description = doc.selectFirst("meta[name=description]")?.attr("content").orEmpty()
-        val tags = doc.select("footer .box-tag a").map(Element::text)
-        val previewImages = doc.select(".gallery-row-scroll img").map { it.absUrl("data-cfsrc") }
-        val recs = doc.select(".box-list-video .col-video").mapNotNull {
-            val title2 = it.selectFirst("p.name-video-list")?.text() ?: return@mapNotNull null
-            val href2 = fixUrl(it.attr("href"))
-            val img2 = it.selectFirst("img")?.attr("data-cfsrc")
-            MovieSearchResponse(title2, href2, name = name, type = TvType.Movie, posterUrl = img2)
+        val tags = doc.select("footer .box-tag a").map { it.text() }
+        val previewImages = doc.select(".gallery-row-scroll img").mapNotNull {
+            it.attr("data-cfsrc").takeIf { it.isNotBlank() }
         }
 
-        return newMovieLoadResponse(title, url, TvType.Movie) {
+        val recommendations = doc.select(".box-list-video .col-video").mapNotNull {
+            val name = it.selectFirst("p.name-video-list")?.text() ?: return@mapNotNull null
+            val href = fixUrl(it.attr("href"))
+            val thumb = it.selectFirst("img")?.let {
+                it.attr("data-cfsrc").takeIf { it.isNotBlank() } ?: it.attr("src")
+            }
+            MovieSearchResponse(
+                title = name,
+                url = href,
+                apiName = this@Fullboys.name,
+                type = TvType.NSFW,
+                posterUrl = thumb
+            )
+        }
+
+        return newMovieLoadResponse(title, url, TvType.NSFW) {
             this.posterUrl = posterUrl
-            backgroundPosterUrl = previewImages.firstOrNull()
-            plot = description
+            this.backgroundPosterUrl = previewImages.firstOrNull()
+            this.plot = description
             this.tags = tags
-            recommendations = recs
-        }.addTrailer(videoUrl)
+            this.recommendations = recommendations
+        }
     }
 
     override suspend fun loadLinks(
@@ -86,15 +96,17 @@ class Fullboys : MainAPI() {
         isCasting: Boolean,
         subtitleCallback: (SubtitleFile) -> Unit,
         callback: (ExtractorLink) -> Unit
-    ) {
-        callback(
+    ): Boolean {
+        callback.invoke(
             ExtractorLink(
-                name = "Fullboys",
-                source = "fullboys.com",
+                source = name,
+                name = "Fullboys Stream",
                 url = data,
+                referer = mainUrl,
                 quality = Qualities.Unknown,
                 isM3u8 = false
             )
         )
+        return true
     }
 }
