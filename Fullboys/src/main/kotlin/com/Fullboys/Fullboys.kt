@@ -78,49 +78,36 @@ class Fullboys : MainAPI() {
     }
 
     override suspend fun load(url: String): LoadResponse {
-        val document = app.get(url).document
-        
-        val title = document.selectFirst("meta[property=og:title]")?.attr("content") 
-            ?: document.selectFirst("title")?.text() ?: ""
-        val poster = document.selectFirst("meta[property=og:image]")?.attr("content") 
-            ?: ""
-        val description = document.selectFirst("meta[property=og:description]")?.attr("content") 
-            ?: ""
+    val doc = app.get(url).document
+    val videoElement = doc.selectFirst("article[itemtype='http://schema.org/VideoObject']")
+        ?: throw ErrorLoadingException("Không tìm thấy thẻ video")
 
-        return newMovieLoadResponse(title, url, TvType.Movie, url) {
-            this.posterUrl = poster
-            this.plot = description
-        }
+    val title = videoElement.selectFirst("meta[itemprop='name']")?.attr("content") ?: "No Title"
+    val poster = videoElement.selectFirst("meta[itemprop='thumbnailUrl']")?.attr("content") ?: ""
+    val description = videoElement.selectFirst("meta[itemprop='description']")?.attr("content") ?: ""
+
+    val actors = doc.select("#video-actors a").mapNotNull { it.text() }.filter { it.isNotBlank() }
+
+    return newMovieLoadResponse(title, url, TvType.NSFW, url) {
+        this.posterUrl = poster
+        this.plot = description
+        if (actors.isNotEmpty()) addActors(actors)
     }
+}
 
-   override suspend fun loadLinks(
-    data: String,
-    isCasting: Boolean,
-    subtitleCallback: (SubtitleFile) -> Unit,
-    callback: (ExtractorLink) -> Unit
-): Boolean {
-    val document = app.get(data).document
-    
-    // Cách 1: Lấy trực tiếp từ thẻ video
-    val directUrl = document.selectFirst("video-info")?.attr("title")
-    
-    // Cách 2: Lấy từ thẻ ẩn (dự phòng)
-    val backupUrl = document.selectFirst("views view-fm")?.attr("value")
-    
-    val videoUrl = directUrl ?: backupUrl ?: return false
+    override suspend fun loadLinks(
+        data: String,
+        isCasting: Boolean,
+        subtitleCallback: (SubtitleFile) -> Unit,
+        callback: (ExtractorLink) -> Unit
+    ): Boolean {
+        val document = app.get(data).document
+        val embedUrl = document.selectFirst("div.responsive-player iframe")?.attr("src")
 
-    callback.invoke(
-        ExtractorLink(
-            name = this.name,
-            source = this.name,
-            url = videoUrl,
-            referer = "$mainUrl/",
-            quality = Qualities.Unknown.value,
-            // Đánh dấu M3U8 nếu là stream
-            isM3u8 = videoUrl.contains(".m3u8")
-        )
-    )
-    
-    return true
-  }
+        if (!embedUrl.isNullOrEmpty()) {
+            loadExtractor(embedUrl, data, subtitleCallback, callback)
+        }
+
+        return true
+    }
 }
