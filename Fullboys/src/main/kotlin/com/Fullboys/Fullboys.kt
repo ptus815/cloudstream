@@ -95,7 +95,7 @@ class Fullboys : MainAPI() {
     return newMovieLoadResponse(title, url, TvType.NSFW, url) {
         this.posterUrl = poster
         this.plot = description
-        if (actors.isNotEmpty()) addActors(actors)
+        if (actors.isNotEmpty()) actors
     }
 }
 
