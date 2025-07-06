@@ -48,36 +48,52 @@ class Fullboys : MainAPI() {
     }
 
     private fun Element.toSearchResult(): SearchResponse {
-        val title = fixTitle(this.select("div.mbunder p.mbtit a").text() ?: "No Title").trim()
-        val href = fixUrl(this.select("div.mbcontent a").attr("href"))
-        var posterUrl = this.selectFirst("img")?.attr("data-src")
-        if (posterUrl.isNullOrBlank())
-        {
-            posterUrl=this.selectFirst("img")?.attr("src")
+        val title     = this.select("div h3").text()
+        val href      = fixUrl(this.select("div h3 a").attr("href"))
+        val posterUrl = this.select("div.poster > img").attr("data-wpfc-original-src")
+        return if (!posterUrl.contains(".jpg")) {
+            val poster=this.select("div.poster > img").attr("src")
+            newMovieSearchResponse(title, href, TvType.NSFW) {
+                this.posterUrl = poster
+            }
+        } else {
+            val poster=posterUrl
+            newMovieSearchResponse(title, href, TvType.NSFW) {
+                this.posterUrl = poster
+            }
         }
-        return newMovieSearchResponse(title, href, TvType.Movie) {
+    }
+
+    private fun Element.toSearchingResult(): SearchResponse {
+        val title = this.select("div.details a").text()
+        val href = fixUrl(this.select("div.image a").attr("href"))
+        val posterUrl = this.select("div.image img").attr("src")
+        return newMovieSearchResponse(title, href, TvType.NSFW) {
             this.posterUrl = posterUrl
         }
     }
 
     override suspend fun search(query: String): List<SearchResponse> {
         val searchResponse = mutableListOf<SearchResponse>()
-        
-        for (page in 1..5) {
-            val url = "$mainUrl/?search=$query&page=$page"
-            val document = app.get(url).document
-            
-            val results = document.select("a.col-video").mapNotNull { 
-                it.toSearchResult() 
+
+        for (i in 1..2) {
+            val document = app.get("${mainUrl}/page/$i/?s=$query").document
+
+            val results = document.select("article")
+                .mapNotNull { it.toSearchingResult() }
+
+            if (!searchResponse.containsAll(results)) {
+                searchResponse.addAll(results)
+            } else {
+                break
             }
-            
+
             if (results.isEmpty()) break
-            searchResponse.addAll(results)
         }
-        
+
         return searchResponse
     }
-
+    
     override suspend fun load(url: String): LoadResponse {
     val doc = app.get(url).document
     val videoElement = doc.selectFirst("article[itemtype='http://schema.org/VideoObject']")
