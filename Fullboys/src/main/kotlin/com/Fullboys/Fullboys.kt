@@ -3,6 +3,10 @@ package com.Fullboys
 import com.lagradost.cloudstream3.*
 import com.lagradost.cloudstream3.utils.*
 import org.jsoup.nodes.Element
+import com.lagradost.cloudstream3.utils.ExtractorLink
+import com.lagradost.cloudstream3.utils.loadExtractor
+import org.json.JSONObject
+import org.json.JSONArray
 
 class Fullboys : MainAPI() {
     override var mainUrl = "https://fullboys.com"
