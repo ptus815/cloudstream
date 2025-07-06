@@ -1,16 +1,15 @@
 package com.Fullboys
 
 import com.lagradost.cloudstream3.*
-import com.lagradost.cloudstream3.utils.*
 import com.lagradost.cloudstream3.network.*
+import com.lagradost.cloudstream3.utils.*
 import org.jsoup.nodes.Element
 
 class Fullboys : MainAPI() {
     override var mainUrl = "https://fullboys.com"
     override var name = "Fullboys"
     override val hasMainPage = true
-    override var lang = "en"
-    override val hasQuickSearch = false
+    override val hasQuickSearch = true
     override val hasDownloadSupport = true
     override val hasChromecastSupport = true
     override val supportedTypes = setOf(TvType.NSFW)
@@ -28,66 +27,34 @@ class Fullboys : MainAPI() {
         "/topic/video/taiwanese/" to "Taiwanese",
         "/topic/video/thailand/" to "Thailand",
         "/topic/video/threesome/" to "Threesome",
-        "/topic/video/viet-nam/" to "Vietnamese",
+        "/topic/video/viet-nam/" to "Vietnamese"
     )
 
-    override suspend fun getMainPage(
-        page: Int,
-        request: MainPageRequest
-    ): HomePageResponse {
-        val url = if (page == 1) {
-            "$mainUrl${request.data}"
-        } else {
-            "$mainUrl${request.data}?page=$page"
-        }
-        
-        val document = app.get(url).document
-        val home = document.select("a.col-video").mapNotNull { 
-            it.toSearchResult() 
-        }
-
+    override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
+        val suffix = if (page <= 1) "" else "?page=$page"
+        val doc = app.get("$mainUrl${request.data}$suffix").document
+        val items = doc.select("a.col-video").mapNotNull(Element::toSearchResult)
         return newHomePageResponse(
-            list = HomePageList(
-                name = request.name,
-                list = home,
-                isHorizontalImages = true
-            ),
-            hasNext = true
+            listOf(HomePageList(request.name, items, isHorizontalImages = true)),
+            hasNext = items.isNotEmpty()
         )
     }
 
     private fun Element.toSearchResult(): SearchResponse? {
-        val href = fixUrl(this.attr("href"))
-        val title = this.selectFirst("p.name-video-list")?.text() ?: return null
-        
-        var posterUrl = this.selectFirst("img.img-video-list")?.attr("data-cfsrc")
-        if (posterUrl.isNullOrBlank()) {
-            posterUrl = this.selectFirst("img.img-video-list")?.attr("src")
-        }
-        
+        val href = fixUrl(attr("href"))
+        val title = selectFirst("p.name-video-list")?.text() ?: return null
+        val img = selectFirst("img.img-video-list")
+        val poster = img?.attr("data-cfsrc").ifEmpty { img?.attr("src") }
+        val duration = selectFirst(".duration")?.text().orEmpty()
         return newMovieSearchResponse(title, href, TvType.Movie) {
-            this.posterUrl = posterUrl
+            posterUrl = poster
+            quality = getQualityFromString(duration)
         }
     }
 
-
     override suspend fun search(query: String): List<SearchResponse> {
         val doc = app.get("$mainUrl/home?search=$query").document
-        return doc.select(".col-video").mapNotNull {
-            val title = it.selectFirst("p.name-video-list")?.text() ?: return@mapNotNull null
-            val link = fixUrl(it.attr("href"))
-            val poster = it.selectFirst("img")?.absUrl("data-cfsrc")
-            val duration = it.selectFirst(".duration")?.text()
-
-            MovieSearchResponse(
-                title = title,
-                url = link,
-                apiName = this.name,
-                type = TvType.NSFW,
-                posterUrl = poster,
-                quality = getQualityFromString(duration ?: "")
-            )
-        }
+        return doc.select("a.col-video").mapNotNull(Element::toSearchResult)
     }
 
     override suspend fun load(url: String): LoadResponse? {
@@ -95,33 +62,22 @@ class Fullboys : MainAPI() {
         val title = doc.selectFirst("h1.title-detail-media")?.text() ?: return null
         val videoUrl = doc.select("video#myvideo").attr("src")
         val posterUrl = doc.select("video#myvideo").attr("poster")
-        val description = doc.selectFirst("meta[name=description]")?.attr("content") ?: ""
-        val tags = doc.select("footer .box-tag a").map { it.text() }
-
-        val previewImages = doc.select(".gallery-row-scroll .img-review").map {
-            it.absUrl("data-cfsrc")
+        val description = doc.selectFirst("meta[name=description]")?.attr("content").orEmpty()
+        val tags = doc.select("footer .box-tag a").map(Element::text)
+        val previewImages = doc.select(".gallery-row-scroll img").map { it.absUrl("data-cfsrc") }
+        val recs = doc.select(".box-list-video .col-video").mapNotNull {
+            val title2 = it.selectFirst("p.name-video-list")?.text() ?: return@mapNotNull null
+            val href2 = fixUrl(it.attr("href"))
+            val img2 = it.selectFirst("img")?.attr("data-cfsrc")
+            MovieSearchResponse(title2, href2, name = name, type = TvType.Movie, posterUrl = img2)
         }
 
-        val recommendations = doc.select(".box-list-video .col-video").mapNotNull {
-            val name = it.selectFirst("p.name-video-list")?.text() ?: return@mapNotNull null
-            val recUrl = fixUrl(it.attr("href"))
-            val recPoster = it.selectFirst("img")?.absUrl("data-cfsrc")
-
-            TvSeriesSearchResponse(
-                title = name,
-                url = recUrl,
-                apiName = this.name,
-                type = TvType.NSFW,
-                posterUrl = recPoster
-            )
-        }
-
-        return newMovieLoadResponse(title, url, TvType.NSFW) {
+        return newMovieLoadResponse(title, url, TvType.Movie) {
             this.posterUrl = posterUrl
-            this.backgroundPosterUrl = previewImages.firstOrNull()
-            this.plot = description
+            backgroundPosterUrl = previewImages.firstOrNull()
+            plot = description
             this.tags = tags
-            this.recommendations = recommendations
+            recommendations = recs
         }.addTrailer(videoUrl)
     }
 
@@ -131,7 +87,7 @@ class Fullboys : MainAPI() {
         subtitleCallback: (SubtitleFile) -> Unit,
         callback: (ExtractorLink) -> Unit
     ) {
-        callback.invoke(
+        callback(
             ExtractorLink(
                 name = "Fullboys",
                 source = "fullboys.com",
