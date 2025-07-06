@@ -30,40 +30,30 @@ class Fullboys : MainAPI() {
         "/topic/video/viet-nam/"   to "Vietnamese",
     )
 
-    override suspend fun getMainPage(
-        page: Int,
-        request: MainPageRequest
-    ): HomePageResponse {
-        val url = if (page == 1) {
-            "$mainUrl${request.data}"
+    override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
+        val url = if (page > 1) {
+            "${request.data}page/$page/"
         } else {
-            "$mainUrl${request.data}?page=$page"
-        }
-        
-        val document = app.get(url).document
-        val home = document.select("a.col-video").mapNotNull { 
-            it.toSearchResult() 
+            request.data
         }
 
+        val document = app.get(url).document
+        val responseList = document.select("article.loop-video.thumb-block").mapNotNull { it.toSearchResult() }
+
         return newHomePageResponse(
-            list = HomePageList(
-                name = request.name,
-                list = home,
-                isHorizontalImages = true
-            ),
-            hasNext = true
+            HomePageList(request.name, responseList, isHorizontalImages = true),
+            hasNext = responseList.isNotEmpty()
         )
     }
 
-    private fun Element.toSearchResult(): SearchResponse? {
-        val href = fixUrl(this.attr("href"))
-        val title = this.selectFirst("p.name-video-list")?.text() ?: return null
-        
-        var posterUrl = this.selectFirst("img.img-video-list")?.attr("data-cfsrc")
-        if (posterUrl.isNullOrBlank()) {
-            posterUrl = this.selectFirst("img.img-video-list")?.attr("src")
+    private fun Element.toSearchResult(): SearchResponse {
+        val title = fixTitle(this.select("div.mbunder p.mbtit a").text() ?: "No Title").trim()
+        val href = fixUrl(this.select("div.mbcontent a").attr("href"))
+        var posterUrl = this.selectFirst("img")?.attr("data-src")
+        if (posterUrl.isNullOrBlank())
+        {
+            posterUrl=this.selectFirst("img")?.attr("src")
         }
-        
         return newMovieSearchResponse(title, href, TvType.Movie) {
             this.posterUrl = posterUrl
         }
@@ -112,10 +102,10 @@ class Fullboys : MainAPI() {
     val document = app.get(data).document
     
     // Cách 1: Lấy trực tiếp từ thẻ video
-    val directUrl = document.selectFirst("video#myvideo")?.attr("src")
+    val directUrl = document.selectFirst("video-info")?.attr("title")
     
     // Cách 2: Lấy từ thẻ ẩn (dự phòng)
-    val backupUrl = document.selectFirst("input#LinkMedia")?.attr("value")
+    val backupUrl = document.selectFirst("views view-fm")?.attr("value")
     
     val videoUrl = directUrl ?: backupUrl ?: return false
 
