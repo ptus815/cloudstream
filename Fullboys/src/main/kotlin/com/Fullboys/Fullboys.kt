@@ -11,7 +11,6 @@ import com.lagradost.cloudstream3.utils.getQualityFromName
 import com.lagradost.cloudstream3.utils.newExtractorLink
 import com.lagradost.cloudstream3.utils.ExtractorApi
 import com.lagradost.cloudstream3.utils.ExtractorLink
-import com.lagradost.cloudstream3.utils.newExtractorLink
 
 class Fullboys : MainAPI() {
     override var mainUrl = "https://fullboys.com"
@@ -102,7 +101,7 @@ class Fullboys : MainAPI() {
         val videoUrl = Regex("""video=(https[^&]+)""").find(iframeSrc)?.groupValues?.get(1)
         if (videoUrl != null) {
             callback(
-                newExtractorLink {
+               ExtractorLink {
                     this.name = "Fullboys"
                     this.source = "Fullboys"
                     this.url = videoUrl
