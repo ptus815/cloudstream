@@ -48,39 +48,23 @@ class Fullboys : MainAPI() {
     }
 
     private fun Element.toSearchResult(): SearchResponse {
-        val title     = this.select("div h3").text()
-        val href      = fixUrl(this.select("div h3 a").attr("href"))
-        val posterUrl = this.select("div.poster > img").attr("data-wpfc-original-src")
-        return if (!posterUrl.contains(".jpg")) {
-            val poster=this.select("div.poster > img").attr("src")
-            newMovieSearchResponse(title, href, TvType.NSFW) {
-                this.posterUrl = poster
-            }
-        } else {
-            val poster=posterUrl
-            newMovieSearchResponse(title, href, TvType.NSFW) {
-                this.posterUrl = poster
-            }
-        }
-    }
-
-    private fun Element.toSearchingResult(): SearchResponse {
-        val title = this.select("div.details a").text()
-        val href = fixUrl(this.select("div.image a").attr("href"))
-        val posterUrl = this.select("div.image img").attr("src")
-        return newMovieSearchResponse(title, href, TvType.NSFW) {
+        val title = this.select(".title").text()
+        val href = mainUrl + this.select(".thumbnail").attr("href")
+        val posterUrl = this.selectFirst(".fix-w")?.attr("src")
+        return newMovieSearchResponse(title, href, TvType.Movie) {
             this.posterUrl = posterUrl
         }
     }
 
     override suspend fun search(query: String): List<SearchResponse> {
+
         val searchResponse = mutableListOf<SearchResponse>()
 
-        for (i in 1..2) {
-            val document = app.get("${mainUrl}/page/$i/?s=$query").document
+        for (i in 1..7) {
+            val document = app.get("$mainUrl/search/video/?s=$query&page=$i").document
+            //val document = app.get("${mainUrl}/page/$i/?s=$query").document
 
-            val results = document.select("article")
-                .mapNotNull { it.toSearchingResult() }
+            val results = document.select("div.video").mapNotNull { it.toSearchResult() }
 
             if (!searchResponse.containsAll(results)) {
                 searchResponse.addAll(results)
@@ -92,6 +76,7 @@ class Fullboys : MainAPI() {
         }
 
         return searchResponse
+
     }
     
     override suspend fun load(url: String): LoadResponse {
