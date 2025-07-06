@@ -3,6 +3,8 @@ package com.Fullboys
 import com.lagradost.cloudstream3.*
 import com.lagradost.cloudstream3.network.*
 import com.lagradost.cloudstream3.utils.*
+import com.lagradost.cloudstream3.utils.ExtractorLink
+import com.lagradost.cloudstream3.LoadResponse.Companion.addActors
 import org.jsoup.nodes.Element
 
 class Fullboys : MainAPI() {
@@ -96,22 +98,19 @@ class Fullboys : MainAPI() {
         )
     }
 
-    override suspend fun loadLinks(
-        data: String,
-        isCasting: Boolean,
-        subtitleCallback: (SubtitleFile) -> Unit,
-        callback: (ExtractorLink) -> Unit
-    ): Boolean {
-        callback(
-            ExtractorLink(
-                source = name,
-                name = "Fullboys Stream",
-                url = data,
-                referer = mainUrl,
-                quality = Qualities.Unknown.value,
-                isM3u8 = false
-            )
-        )
-        return true
-    }
+   override suspend fun loadLinks(
+data: String,
+isCasting: Boolean,
+subtitleCallback: (SubtitleFile) -> Unit,
+callback: (ExtractorLink) -> Unit
+): Boolean {
+        val document = app.get(data).document
+        val embedUrl = document.selectFirst("div.responsive-player iframe")?.attr("src")
+
+        if (!embedUrl.isNullOrEmpty()) {
+            loadExtractor(embedUrl, data, subtitleCallback, callback)
+        }
+
+return true
+}
 }
