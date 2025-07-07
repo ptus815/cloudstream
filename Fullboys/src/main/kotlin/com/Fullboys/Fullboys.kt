@@ -26,20 +26,18 @@ class Fullboys : MainAPI() {
     )
 
 override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
-        val url = if (page > 1) {
-            "${request.data}page/$page/"
-        } else {
-            request.data
-        }
+        val document = app.get("$mainUrl/${request.data}/$page/").document
+        val home = document.select("#box-cate div.mb").mapNotNull { it.toSearchResult() }
+        return newHomePageResponse(
+            list    = HomePageList(
+                name = request.name,
+                list = home,
+                isHorizontalImages = true
+            ),
+            hasNext = true
+        )
+    }
 
-        val document = app.get(url).document
-        val responseList = document.select("article.movie-item").mapNotNull { it.toSearchResult() }
-
-return newHomePageResponse(
-            HomePageList(request.name, responseList, isHorizontalImages = true),
-            hasNext = responseList.isNotEmpty()
-)
-}
 
     private fun Element.toSearchResult(): SearchResponse? {
         val aTag = this.selectFirst("a") ?: return null
