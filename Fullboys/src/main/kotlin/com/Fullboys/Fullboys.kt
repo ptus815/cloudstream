@@ -28,7 +28,7 @@ class Fullboys : MainAPI() {
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
         val suffix = if (page <= 1) "" else "?page=$page"
         val doc = app.get(mainUrl + request.data + suffix).document
-        val items = doc.select("a.col-video").mapNotNull { it.toSearchItem() }
+        val items = doc.select("movie-item").mapNotNull { it.toSearchItem() }
         return HomePageResponse(
             listOf(HomePageList(request.name, items, isHorizontalImages = true)),
             hasNext = items.isNotEmpty()
@@ -37,7 +37,7 @@ class Fullboys : MainAPI() {
 
     override suspend fun search(query: String): List<SearchResponse> {
         val doc = app.get("$mainUrl/home?search=$query").document
-        return doc.select("a.col-video").mapNotNull { it.toSearchItem() }
+        return doc.select("movie-item").mapNotNull { it.toSearchItem() }
     }
 
     private fun Element.toSearchItem(): SearchResponse? {
@@ -59,17 +59,17 @@ class Fullboys : MainAPI() {
     override suspend fun load(url: String): LoadResponse? {
         val doc = app.get(url).document
 
-        val name = doc.selectFirst("h1.title-detail-media")?.text() ?: return null
-        val videoUrl = doc.select("video#myvideo").attr("src")
-        val posterUrl = doc.select("video#myvideo").attr("poster")
+        val name = doc.selectFirst("h1.title-detail")?.text() ?: return null
+        val videoUrl = doc.select("iframe.ifvideo").attr("src")
+        val posterUrl = doc.select("preview-image").attr("poster")
         val description = doc.selectFirst("meta[name=description]")?.attr("content").orEmpty()
         val tags = doc.select("footer .box-tag a").map { it.text() }
         val previewImages = doc.select(".gallery-row-scroll img").mapNotNull {
             it.attr("data-cfsrc").takeIf { it.isNotBlank() }
         }
 
-        val recommendations = doc.select(".box-list-video .col-video").mapNotNull {
-            val recName = it.selectFirst("p.name-video-list")?.text() ?: return@mapNotNull null
+        val recommendations = doc.select(".movie-item").mapNotNull {
+            val recName = it.selectFirst("p.title")?.text() ?: return@mapNotNull null
             val recUrl = fixUrl(it.attr("href"))
             val recThumb = it.selectFirst("img")?.let {
                 it.attr("data-cfsrc").takeIf { it.isNotBlank() } ?: it.attr("src")
