@@ -105,7 +105,7 @@ class Fullboys : MainAPI() {
         )
     }
 
-    override suspend fun loadLinks(
+        override suspend fun loadLinks(
     data: String,
     isCasting: Boolean,
     subtitleCallback: (SubtitleFile) -> Unit,
@@ -113,6 +113,7 @@ class Fullboys : MainAPI() {
 ): Boolean {
     callback(
         newExtractorLink(
+            source = name,
             name = "Fullboys Stream",
             url = data,
             referer = mainUrl,
