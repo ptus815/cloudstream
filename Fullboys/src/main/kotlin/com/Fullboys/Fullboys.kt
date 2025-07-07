@@ -27,7 +27,7 @@ class Fullboys : MainAPI() {
 
 override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
         val document = app.get("$mainUrl/${request.data}/$page/").document
-        val home = document.select("div.movie-grid").mapNotNull { it.toSearchResult() }
+        val home = document.select("article.movie-item").mapNotNull { it.toSearchResult() }
         return newHomePageResponse(
             list    = HomePageList(
                 name = request.name,
@@ -42,11 +42,11 @@ override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageR
     private fun Element.toSearchResult(): SearchResponse? {
         val aTag = this.selectFirst("a") ?: return null
         val href = aTag.attr("href")
-        val title = aTag.selectFirst("header.video-info h2")?.text() ?: "No Title"
+        val title = aTag.selectFirst("h2.title")?.text() ?: "No Title"
 
-        var posterUrl = aTag.selectFirst(".image-container ar-16x9 img")?.attr("data-src")
+        var posterUrl = aTag.selectFirst("img")?.attr("data-src")
         if (posterUrl.isNullOrEmpty()) {
-            posterUrl = aTag.selectFirst(".post-thumbnail-container img")?.attr("src")
+            posterUrl = aTag.selectFirst("img")?.attr("src")
     }
 
         return newMovieSearchResponse(title, href, TvType.Movie) {
