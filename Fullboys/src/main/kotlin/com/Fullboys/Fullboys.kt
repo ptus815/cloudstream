@@ -106,21 +106,20 @@ class Fullboys : MainAPI() {
     }
 
     override suspend fun loadLinks(
-        data: String,
-        isCasting: Boolean,
-        subtitleCallback: (SubtitleFile) -> Unit,
-        callback: (ExtractorLink) -> Unit
-    ): Boolean {
-        callback(
-            ExtractorLink(
-                source = name,
-                name = "Fullboys Stream",
-                url = data,
-                referer = mainUrl,
-                quality = 720, // Hoặc 0 nếu bạn không biết rõ
-                isM3u8 = false
-            )
+    data: String,
+    isCasting: Boolean,
+    subtitleCallback: (SubtitleFile) -> Unit,
+    callback: (ExtractorLink) -> Unit
+): Boolean {
+    callback(
+        newExtractorLink(
+            name = "Fullboys Stream",
+            url = data,
+            referer = mainUrl,
+            quality = 720,
+            isM3u8 = false
         )
-        return true
-    }
+    )
+    return true
+}
 }
