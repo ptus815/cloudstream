@@ -65,7 +65,7 @@ class Fullboys : MainAPI() {
 
         val name = doc.selectFirst("h1.title-detail-media")?.text() ?: return null
         val videoUrl = doc.selectFirst("video#myvideo")?.attr("src") ?: return null
-        val link = fixUrlNull(it.selectFirst("a")?.attr("href")) ?: return@mapNotNull null
+        val link = fixUrlNull(aTag.selectFirst("a")?.attr("href")) ?: return@mapNotNull null
         val posterUrl = doc.selectFirst("video#myvideo")?.attr("poster")
         val description = doc.selectFirst("meta[name=description]")?.attr("content").orEmpty()
         val tags = doc.select("footer .box-tag a").map { it.text() }
