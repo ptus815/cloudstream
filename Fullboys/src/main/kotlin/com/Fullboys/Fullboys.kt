@@ -25,37 +25,61 @@ class Fullboys : MainAPI() {
         "/topic/video/viet-nam/" to "Vietnamese"
     )
 
-    override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
-        val suffix = if (page <= 1) "" else "?page=$page"
-        val doc = app.get(mainUrl + request.data + suffix).document
-        val items = doc.select("movie-item").mapNotNull { it.toSearchItem() }
-        return HomePageResponse(
-            listOf(HomePageList(request.name, items, isHorizontalImages = true)),
-            hasNext = items.isNotEmpty()
-        )
+override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
+        val url = if (page > 1) {
+            "${request.data}page/$page/"
+        } else {
+            request.data
+        }
+
+        val document = app.get(url).document
+        val responseList = document.select("article.movie-item").mapNotNull { it.toSearchResult() }
+
+return newHomePageResponse(
+            HomePageList(request.name, responseList, isHorizontalImages = true),
+            hasNext = responseList.isNotEmpty()
+)
+}
+
+    private fun Element.toSearchResult(): SearchResponse? {
+        val aTag = this.selectFirst("a") ?: return null
+        val href = aTag.attr("href")
+        val title = aTag.selectFirst("header.video-info h2")?.text() ?: "No Title"
+
+        var posterUrl = aTag.selectFirst(".image-container ar-16x9 img")?.attr("data-src")
+        if (posterUrl.isNullOrEmpty()) {
+            posterUrl = aTag.selectFirst(".post-thumbnail-container img")?.attr("src")
+    }
+
+        return newMovieSearchResponse(title, href, TvType.Movie) {
+            this.posterUrl = posterUrl
+    }
     }
 
     override suspend fun search(query: String): List<SearchResponse> {
-        val doc = app.get("$mainUrl/home?search=$query").document
-        return doc.select("movie-item").mapNotNull { it.toSearchItem() }
-    }
+        val searchResponse = mutableListOf<SearchResponse>()
+        for (i in 1..7) {
+            val url = if (i > 1) {
+                "$mainUrl/page/$i/?s=$query"
+            } else {
+                "$mainUrl/?s=$query"
+            }
 
-    private fun Element.toSearchItem(): SearchResponse? {
-        val url = fixUrl(attr("href"))
-        val name = selectFirst("title")?.text() ?: return null
-        val image = selectFirst("img")?.let {
-            it.attr("data-cfsrc").takeIf { it.isNotBlank() } ?: it.attr("src")
-        }
+            val document = app.get(url).document
+            val results = document.select("article.movie-item").mapNotNull { it.toSearchResult() }
+
+            if (results.isEmpty()) break
+            if (!searchResponse.containsAll(results)) {
+                searchResponse.addAll(results)
+            } else {
+                break
+            }
+}
+
+        return searchResponse
+}
+
     
-        return MovieSearchResponse(
-            name = name,
-            url = url,
-            apiName = this@Fullboys.name,
-            type = TvType.NSFW,
-            posterUrl = image
-        )
-    }
-
     override suspend fun load(url: String): LoadResponse? {
         val doc = app.get(url).document
 
