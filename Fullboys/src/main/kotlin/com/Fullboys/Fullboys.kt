@@ -118,10 +118,7 @@ class Fullboys : MainAPI() {
         newExtractorLink(
             source = name,
             name = "Fullboys Stream",
-            url = data,
-            referer = mainUrl,
-            quality = 720,
-            isM3u8 = false
+            url = data
         )
     )
     return true
