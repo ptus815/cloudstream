@@ -27,7 +27,7 @@ class Fullboys : MainAPI() {
 
 override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
         val document = app.get("$mainUrl/${request.data}/$page/").document
-        val home = document.select("#box-cate div.mb").mapNotNull { it.toSearchResult() }
+        val home = document.select("movie-giid").mapNotNull { it.toSearchResult() }
         return newHomePageResponse(
             list    = HomePageList(
                 name = request.name,
