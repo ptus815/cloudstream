@@ -57,7 +57,21 @@ class Fullboys : MainAPI() {
     override suspend fun search(query: String): List<SearchResponse> {
         val url = "$mainUrl/home?search=$query"
         val document = app.get(url).document
-        return document.select("article.movie-item").mapNotNull { toSearchItem(it) }
+        return document.select("article.movie-item").mapNotNull { 
+             if (it == null) {
+                return@mapNotNull null
+            }
+            val title = it.selectFirst("h2.title")?.text() ?: return@mapNotNull null
+            val link = fixUrlNull(it.selectFirst("a")?.attr("href")) ?: return@mapNotNull null
+            val image = fetchImgUrl(it.selectFirst("img"))
+            MovieSearchResponse(
+                name = title,
+                url = link,
+                apiName = this.name,
+                type = globalTvType,
+                posterUrl = image
+            )
+        }.distinctBy { it.url }
     }
 
     override suspend fun load(url: String): LoadResponse? {
