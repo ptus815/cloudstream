@@ -1,105 +1,83 @@
 package com.Fullboys
 
 import com.lagradost.cloudstream3.*
-import com.lagradost.cloudstream3.network.*
 import com.lagradost.cloudstream3.utils.*
 import com.lagradost.cloudstream3.utils.ExtractorLink
-import com.lagradost.cloudstream3.LoadResponse.Companion.addActors
 import org.jsoup.nodes.Element
 
 class Fullboys : MainAPI() {
     override var mainUrl = "https://fullboys.com"
     override var name = "Fullboys"
     override val hasMainPage = true
-    override val hasQuickSearch = true
     override val hasDownloadSupport = true
-    override val hasChromecastSupport = true
     override val supportedTypes = setOf(TvType.NSFW)
-    override val vpnStatus = VPNStatus.MightBeNeeded
 
     override val mainPage = mainPageOf(
-        "/" to "Newest",
-        "/topic/video/asian/" to "Asian",
-        "/topic/video/korean/" to "Korean",
-        "/topic/video/muscle/" to "Muscle",
-        "/topic/video/viet-nam/" to "Vietnamese"
+        "/?filter=vip" to "HOT",
+        "/topic/video/muscle" to "Muscle",
+        "/topic/video/korean" to "Korean",
+        "/topic/video/japanese" to "Japanese",
+        "/topic/video/taiwanese" to "Taiwanese",
+        "/topic/video/viet-nam" to "Vietnamese"
     )
 
-override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
-    val url = if (page == 1) "$mainUrl${request.data}" else "$mainUrl${request.data}?page=$page"
-    val document = app.get(url).document
-    val items = document.select("article.movie-item").mapNotNull { it.toSearchItem() }
+    override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
+        val pageUrl = if (page == 1) "$mainUrl${request.data}" else "$mainUrl${request.data}?page=$page"
+        val document = app.get(pageUrl).document
 
-    return newHomePageResponse(
-        HomePageList(
-            name = request.name,
-            list = items,
-            isHorizontalImages = true
-        ),
-        hasNext = items.isNotEmpty()
-    )
-}
+        val items = document.select("article.movie-item").mapNotNull { toSearchItem(it) }
 
+        return newHomePageResponse(
+            HomePageList(
+                name = request.name,
+                list = items,
+                isHorizontalImages = true
+            ),
+            hasNext = items.isNotEmpty()
+        )
+    }
 
-   private fun Element.toSearchItem(): SearchResponse? {
-    val aTag = this.selectFirst("a") ?: return null
-    val url = fixUrl(aTag.attr("href"))
+    private fun toSearchItem(element: Element): SearchResponse? {
+        val aTag = element.selectFirst("a") ?: return null
+        val url = fixUrl(aTag.attr("href"))
+        val name = aTag.selectFirst("h2.title")?.text() ?: return null
 
-    val title = aTag.selectFirst("h2.title")?.text() ?: return null
-    val image = aTag.selectFirst("img")?.let {
-        it.attr("data-cfsrc").takeIf { src -> src.isNotBlank() } ?: it.attr("src")
-    } ?: return null
+        val image = aTag.selectFirst("img")?.let {
+            it.attr("data-cfsrc").takeIf { src -> src.isNotBlank() } ?: it.attr("src")
+        } ?: return null
 
-    val duration = aTag.selectFirst("span.duration")?.text()
+        val duration = aTag.selectFirst("span.duration")?.text()
 
-    return MovieSearchResponse(
-        name = title,
-        url = url,
-        apiName = "Fullboys",
-        type = TvType.NSFW,
-        posterUrl = image,
-        quality = getQualityFromString(duration)?.value
-    )
-}
+        return MovieSearchResponse(
+            name = name,
+            url = url,
+            apiName = this@Fullboys.name,
+            type = TvType.NSFW,
+            posterUrl = image,
+            quality = getQualityFromString(duration)
+        )
+    }
 
     override suspend fun search(query: String): List<SearchResponse> {
-        val searchResponse = mutableListOf<SearchResponse>()
-        for (i in 1..7) {
-            val url = if (i > 1) {
-                "$mainUrl/page/$i/?s=$query"
-            } else {
-                "$mainUrl/?s=$query"
-            }
+        val url = "$mainUrl/home?search=$query"
+        val document = app.get(url).document
+        return document.select("article.movie-item").mapNotNull { toSearchItem(it) }
+    }
 
-            val document = app.get(url).document
-            val results = document.select("article.movie-item").mapNotNull { it.toSearchResult() }
-
-            if (results.isEmpty()) break
-            if (!searchResponse.containsAll(results)) {
-                searchResponse.addAll(results)
-            } else {
-                break
-            }
-}
-
-        return searchResponse
-}
-
-    
     override suspend fun load(url: String): LoadResponse? {
         val doc = app.get(url).document
 
-        val name = doc.selectFirst("h1.title-detail")?.text() ?: return null
-        val videoUrl = doc.select("iframe.ifvideo").attr("src")
-        val posterUrl = doc.select("preview-image").attr("poster")
+        val name = doc.selectFirst("h1.title-detail-media")?.text() ?: return null
+        val videoUrl = doc.selectFirst("video#myvideo")?.attr("src") ?: return null
+        val posterUrl = doc.selectFirst("video#myvideo")?.attr("poster")
         val description = doc.selectFirst("meta[name=description]")?.attr("content").orEmpty()
         val tags = doc.select("footer .box-tag a").map { it.text() }
         val previewImages = doc.select(".gallery-row-scroll img").mapNotNull {
             it.attr("data-cfsrc").takeIf { it.isNotBlank() }
         }
 
-        val recommendations = doc.select(".movie-item").mapNotNull {
-            val recName = it.selectFirst("p.title")?.text() ?: return@mapNotNull null
+        val recommendations = doc.select(".box-list-video .col-video").mapNotNull {
+        val recName = it.selectFirst("p.name-video-list")?.text() ?: return@mapNotNull null
             val recUrl = fixUrl(it.attr("href"))
             val recThumb = it.selectFirst("img")?.let {
                 it.attr("data-cfsrc").takeIf { it.isNotBlank() } ?: it.attr("src")
@@ -127,19 +105,22 @@ override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageR
         )
     }
 
-   override suspend fun loadLinks(
-data: String,
-isCasting: Boolean,
-subtitleCallback: (SubtitleFile) -> Unit,
-callback: (ExtractorLink) -> Unit
-): Boolean {
-        val document = app.get(data).document
-        val embedUrl = document.selectFirst("div.responsive-player iframe")?.attr("src")
-
-        if (!embedUrl.isNullOrEmpty()) {
-            loadExtractor(embedUrl, data, subtitleCallback, callback)
-        }
-
-return true
-}
+    override suspend fun loadLinks(
+        data: String,
+        isCasting: Boolean,
+        subtitleCallback: (SubtitleFile) -> Unit,
+        callback: (ExtractorLink) -> Unit
+    ): Boolean {
+        callback(
+            ExtractorLink(
+                source = name,
+                name = "Fullboys Stream",
+                url = data,
+                referer = mainUrl,
+                quality = 720, // Hoặc 0 nếu bạn không biết rõ
+                isM3u8 = false
+            )
+        )
+        return true
+    }
 }
