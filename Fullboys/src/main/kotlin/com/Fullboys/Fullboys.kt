@@ -26,33 +26,41 @@ class Fullboys : MainAPI() {
     )
 
 override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
-        val document = app.get("$mainUrl/${request.data}/$page/").document
-        val home = document.select("article.movie-item").mapNotNull { it.toSearchResult() }
-        return newHomePageResponse(
-            list    = HomePageList(
-                name = request.name,
-                list = home,
-                isHorizontalImages = true
-            ),
-            hasNext = true
-        )
-    }
+    val url = if (page == 1) "$mainUrl${request.data}" else "$mainUrl${request.data}?page=$page"
+    val document = app.get(url).document
+    val items = document.select("article.movie-item").mapNotNull { it.toSearchItem() }
+
+    return newHomePageResponse(
+        HomePageList(
+            name = request.name,
+            list = items,
+            isHorizontalImages = true
+        ),
+        hasNext = items.isNotEmpty()
+    )
+}
 
 
-    private fun Element.toSearchResult(): SearchResponse? {
-        val aTag = this.selectFirst("a") ?: return null
-        val href = aTag.attr("href")
-        val title = aTag.selectFirst("h2.title")?.text() ?: "No Title"
+   private fun Element.toSearchItem(): SearchResponse? {
+    val aTag = this.selectFirst("a") ?: return null
+    val url = fixUrl(aTag.attr("href"))
 
-        var posterUrl = aTag.selectFirst("img")?.attr("data-src")
-        if (posterUrl.isNullOrEmpty()) {
-            posterUrl = aTag.selectFirst("img")?.attr("src")
-    }
+    val title = aTag.selectFirst("h2.title")?.text() ?: return null
+    val image = aTag.selectFirst("img")?.let {
+        it.attr("data-cfsrc").takeIf { src -> src.isNotBlank() } ?: it.attr("src")
+    } ?: return null
 
-        return newMovieSearchResponse(title, href, TvType.Movie) {
-            this.posterUrl = posterUrl
-    }
-    }
+    val duration = aTag.selectFirst("span.duration")?.text()
+
+    return MovieSearchResponse(
+        name = title,
+        url = url,
+        apiName = "Fullboys",
+        type = TvType.NSFW,
+        posterUrl = image,
+        quality = getQualityFromString(duration)?.value
+    )
+}
 
     override suspend fun search(query: String): List<SearchResponse> {
         val searchResponse = mutableListOf<SearchResponse>()
