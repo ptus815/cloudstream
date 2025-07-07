@@ -2,10 +2,6 @@ package com.Fullboys
 
 import com.lagradost.cloudstream3.*
 import com.lagradost.cloudstream3.utils.*
-import com.lagradost.cloudstream3.utils.ExtractorLink
-import com.lagradost.cloudstream3.utils.newExtractorLink
-import com.lagradost.cloudstream3.utils.M3u8Helper
-import com.lagradost.cloudstream3.utils.getQualityFromName
 import org.jsoup.nodes.Element
 
 class Fullboys : MainAPI() {
@@ -49,15 +45,12 @@ class Fullboys : MainAPI() {
             it.attr("data-cfsrc").takeIf { src -> src.isNotBlank() } ?: it.attr("src")
         } ?: return null
 
-        val duration = aTag.selectFirst("span.duration")?.text()
-
         return MovieSearchResponse(
             name = name,
             url = url,
             apiName = this@Fullboys.name,
             type = TvType.NSFW,
-            posterUrl = image,
-            quality = getQualityFromString(duration)
+            posterUrl = image
         )
     }
 
@@ -75,52 +68,32 @@ class Fullboys : MainAPI() {
         val posterUrl = doc.selectFirst("video#myvideo")?.attr("poster")
         val description = doc.selectFirst("meta[name=description]")?.attr("content").orEmpty()
         val tags = doc.select("footer .box-tag a").map { it.text() }
-        val previewImages = doc.select(".gallery-row-scroll img").mapNotNull {
-            it.attr("data-cfsrc").takeIf { it.isNotBlank() }
-        }
-
-        val recommendations = doc.select(".box-list-video .col-video").mapNotNull {
-        val recName = it.selectFirst("p.name-video-list")?.text() ?: return@mapNotNull null
-            val recUrl = fixUrl(it.attr("href"))
-            val recThumb = it.selectFirst("img")?.let {
-                it.attr("data-cfsrc").takeIf { it.isNotBlank() } ?: it.attr("src")
-            }
-            MovieSearchResponse(
-                name = recName,
-                url = recUrl,
-                apiName = this@Fullboys.name,
-                type = TvType.NSFW,
-                posterUrl = recThumb
-            )
-        }
 
         return MovieLoadResponse(
             name = name,
             url = url,
             apiName = this.name,
             type = TvType.NSFW,
-            dataUrl = videoUrl,
+            dataUrl = videoUrl, // ✅ Truyền video mp4 thật
             posterUrl = posterUrl,
-            backgroundPosterUrl = previewImages.firstOrNull(),
             plot = description,
-            tags = tags,
-            recommendations = recommendations
+            tags = tags
         )
     }
 
-        override suspend fun loadLinks(
-    data: String,
-    isCasting: Boolean,
-    subtitleCallback: (SubtitleFile) -> Unit,
-    callback: (ExtractorLink) -> Unit
-): Boolean {
-    callback(
-        newExtractorLink(
-            source = name,
-            name = "Fullboys Stream",
-            url = data
+    override suspend fun loadLinks(
+        data: String,
+        isCasting: Boolean,
+        subtitleCallback: (SubtitleFile) -> Unit,
+        callback: (ExtractorLink) -> Unit
+    ): Boolean {
+        callback(
+            newExtractorLink(
+                source = name,
+                name = "Fullboys Stream",
+                url = data // ✅ Link .mp4 thật
+            )
         )
-    )
-    return true
-}
+        return true
+    }
 }
