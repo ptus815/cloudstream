@@ -57,21 +57,7 @@ class Fullboys : MainAPI() {
     override suspend fun search(query: String): List<SearchResponse> {
         val url = "$mainUrl/home?search=$query"
         val document = app.get(url).document
-        return document.select("article.movie-item").mapNotNull { 
-             if (it == null) {
-                return@mapNotNull null
-            }
-            val title = it.selectFirst("h2.title")?.text() ?: return@mapNotNull null
-            val link = fixUrlNull(it.selectFirst("a")?.attr("href")) ?: return@mapNotNull null
-            val image = fetchImgUrl(it.selectFirst("img"))
-            MovieSearchResponse(
-                name = title,
-                url = link,
-                apiName = this.name,
-                type = globalTvType,
-                posterUrl = image
-            )
-        }.distinctBy { it.url }
+        return document.select("article.movie-item").mapNotNull { toSearchItem(it) }
     }
 
     override suspend fun load(url: String): LoadResponse? {
@@ -79,17 +65,16 @@ class Fullboys : MainAPI() {
 
         val name = doc.selectFirst("h1.title-detail-media")?.text() ?: return null
         val videoUrl = doc.selectFirst("video#myvideo")?.attr("src") ?: return null
-        val link = fixUrlNull(aTag.selectFirst("a")?.attr("href")) ?: return@mapNotNull null
         val posterUrl = doc.selectFirst("video#myvideo")?.attr("poster")
         val description = doc.selectFirst("meta[name=description]")?.attr("content").orEmpty()
         val tags = doc.select("footer .box-tag a").map { it.text() }
 
         return MovieLoadResponse(
             name = name,
-            url = link,
+            url = url,
             apiName = this.name,
             type = TvType.NSFW,
-            dataUrl = videoUrl, // ✅ Truyền video mp4 thật
+            dataUrl = videoUrl,
             posterUrl = posterUrl,
             plot = description,
             tags = tags
@@ -106,7 +91,7 @@ class Fullboys : MainAPI() {
             newExtractorLink(
                 source = name,
                 name = "Fullboys Stream",
-                url = data // ✅ Link .mp4 thật
+                url = data
             )
         )
         return true
