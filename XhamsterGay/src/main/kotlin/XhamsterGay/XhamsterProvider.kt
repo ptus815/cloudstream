@@ -118,7 +118,7 @@ data class VideoThumbProps(
 // === LỚP PROVIDER CHÍNH ===
 class XhamsterProvider: MainAPI() {
     // Thông tin cơ bản
-    override var mainUrl = "https://vi.xhspot.com" // Đã xác nhận URL này
+    override var mainUrl = "https://vi.xhspot.com/gay/hd" // Đã xác nhận URL này
     override var name = "Xhamster Gay"
     override val hasMainPage = true
     override var lang = "vi"
