@@ -1,11 +1,9 @@
 package com.Boyfriendtv
 
 import org.jsoup.nodes.Element
-import com.lagradost.cloudstream3.*
+import com.lagradost.cloudst1ream3.*
 import com.lagradost.cloudstream3.utils.*
 
-class Longvideos : MainAPI() {
-    override var mainUrl              = "https://www.boyfriendtv.com"
     override var name                 = "Boyfriendtv"
     override val hasMainPage          = true
     override var lang                 = "en"
@@ -15,17 +13,9 @@ class Longvideos : MainAPI() {
     override val vpnStatus            = VPNStatus.MightBeNeeded
 
     override val mainPage = mainPageOf(
-        "" to "Trending",
-        "tags/asian" to "Asian",
-        "tags/latinos" to "Latinos",
-        "playlists/7268174" to "Playlist Hot",
-        "?s=&sort=newest" to "New",
-        "?s=&sort=most-popular" to "Most Popular"
     )
 
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
-        val document = app.get("$mainUrl/${request.data}/$page/").document
-        val home     = document.select("div.list-videos div.item").mapNotNull { it.toSearchResult() }
 
         return newHomePageResponse(
                 list    = HomePageList(
@@ -38,14 +28,6 @@ class Longvideos : MainAPI() {
     }
 
     private fun Element.toSearchResult(): SearchResponse {
-        val title     = this.select("a").attr("title")
-        val href      = this.select("a").attr("href")
-        var posterUrl = this.select("img").attr("src")
-
-        if(posterUrl.contains("data:image")) {
-            posterUrl = this.select("img").attr("data-src")
-        }
-
         return newMovieSearchResponse(title, href, TvType.Movie) {
             this.posterUrl = posterUrl
         }
@@ -54,9 +36,6 @@ class Longvideos : MainAPI() {
     override suspend fun search(query: String): List<SearchResponse> {
         val searchResponse = mutableListOf<SearchResponse>()
 
-        for (i in 1..7) {
-            val document = app.get("$mainUrl/search/$i/?q=$query").document
-            val results  = document.select("div.list-videos div.item").mapNotNull { it.toSearchResult() }
 
             if (!searchResponse.containsAll(results)) {
                 searchResponse.addAll(results)
@@ -73,12 +52,8 @@ class Longvideos : MainAPI() {
     override suspend fun load(url: String): LoadResponse {
         val document = app.get(url).document
 
-        val title       = document.select("meta[property=og:title]").attr("content")
-        val poster      = document.select("meta[property='og:image']").attr("content")
-        val description = document.select("meta[property=og:description]").attr("content")
 
 
-        return newMovieLoadResponse(title, url, TvType.Movie, url) {
             this.posterUrl = poster
             this.plot      = description
         }
@@ -86,21 +61,7 @@ class Longvideos : MainAPI() {
 
     override suspend fun loadLinks(data: String, isCasting: Boolean, subtitleCallback: (SubtitleFile) -> Unit, callback: (ExtractorLink) -> Unit): Boolean {
         val document = app.get(data).document
-
-        document.select("video.video-js > source").forEach {
-            val url     = it.attr("src")
-            val quality = it.attr("label").replace("p", "").toIntOrNull() ?: Qualities.Unknown.value
-            callback.invoke(
-                newExtractorLink(
-                    this.name,
-                    this.name,
-                    url,
-                    type = ExtractorLinkType.VIDEO,
-                ) {
-                    this.quality = quality
-                    this.referer = data
                 }
-            )
         }
         return true
     }
