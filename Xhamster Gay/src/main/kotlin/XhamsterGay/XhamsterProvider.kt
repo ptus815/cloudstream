@@ -1,5 +1,5 @@
 // 1. Package
-package recloudstream
+package XhamsterGay
 
 // 2. Imports
 import android.util.Log // Import Log for debugging
@@ -119,7 +119,7 @@ data class VideoThumbProps(
 class XhamsterProvider: MainAPI() {
     // Thông tin cơ bản
     override var mainUrl = "https://vi.xhspot.com" // Đã xác nhận URL này
-    override var name = "Xhamster"
+    override var name = "Xhamster Gay"
     override val hasMainPage = true
     override var lang = "vi"
     override val supportedTypes = setOf(TvType.NSFW)
