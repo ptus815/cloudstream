@@ -5,7 +5,7 @@ cloudstream {
     // All of these properties are optional, you can safely remove any of them.
 
     language = "vi"
-    authors = listOf("SIX")
+    authors = listOf("GayXXX")
 
     /**
      * Status int as one of the following:
