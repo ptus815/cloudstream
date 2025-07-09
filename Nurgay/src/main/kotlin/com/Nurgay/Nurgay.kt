@@ -52,7 +52,7 @@ class Nurgay : MainAPI() {
             val document = app.get("$mainUrl/page/$i/?s=$query").document
             val results = document.select("div.slide loop-video bx-clone > div.slide loop-video").mapNotNull { it.toSearchResult() }
 
-            if (!searchResponse.containsAll(results)) 
+            if (!searchResponse.containsAll(results)) {
                 searchResponse.addAll(results)
             } else {
                 break
@@ -74,7 +74,7 @@ class Nurgay : MainAPI() {
 
         return newMovieLoadResponse(title, url, TvType.NSFW, url) {
             this.posterUrl = poster
-            this.plot      = description
+            
         }
     }
 
