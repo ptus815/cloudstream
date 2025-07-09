@@ -44,13 +44,14 @@ class Fullboys : MainAPI() {
                 val title = it.selectFirst("span.title a")?.text().orEmpty()
                 val link = fixUrlNull(it.selectFirst("a")?.attr("href")) ?: return@mapNotNull null
                 val img = fetchImgUrl(it.selectFirst("img"))
-                MovieSearchResponse(
+                newMovieSearchResponse(
                     name = title,
                     url = link,
                     apiName = this.name,
-                    type = globalTvType,
+                    type = globalTvType
+                ) {
                     posterUrl = img
-                )
+                }
             }
             if (home.isNotEmpty()) {
                 return newHomePageResponse(
@@ -77,13 +78,14 @@ class Fullboys : MainAPI() {
             val title = it.selectFirst("span.title a")?.text() ?: return@mapNotNull null
             val link = fixUrlNull(it.selectFirst("a")?.attr("href")) ?: return@mapNotNull null
             val image = fetchImgUrl(it.selectFirst("img"))
-            MovieSearchResponse(
+            newMovieSearchResponse(
                 name = title,
                 url = link,
                 apiName = this.name,
-                type = globalTvType,
+                type = globalTvType
+            ) {
                 posterUrl = image
-            )
+            }
         }.distinctBy { it.url }
     }
 
@@ -100,12 +102,14 @@ class Fullboys : MainAPI() {
             val rTitle = it.selectFirst("div.phimage a")?.attr("title").orEmpty()
             val rUrl = fixUrlNull(it.selectFirst("div.phimage a")?.attr("href")) ?: return@mapNotNull null
             val rPoster = fixUrlNull(it.selectFirst("div.phimage img.js-videoThumb")?.attr("src"))
-            MovieSearchResponse(
+            newMovieSearchResponse(
                 name = rTitle,
-                apiName = this.name,
                 url = rUrl,
+                apiName = this.name,
+                type = globalTvType
+            ) {
                 posterUrl = rPoster
-            )
+            }
         }
 
         return newMovieLoadResponse(title, url, TvType.NSFW, url) {
@@ -140,9 +144,10 @@ class Fullboys : MainAPI() {
             val videoUrl = mediaObj.optString("videoUrl") ?: continue
             val extlinkList = mutableListOf<ExtractorLink>()
             try {
+                // apmap deprecated -> dùng map và awaitAll nếu cần (ở đây gọi sync)
                 M3u8Helper().m3u8Generation(
                     M3u8Helper.M3u8Stream(videoUrl), true
-                ).apmap { stream ->
+                ).map { stream ->
                     extlinkList.add(
                         newExtractorLink(
                             source = name,
@@ -165,7 +170,6 @@ class Fullboys : MainAPI() {
         return true
     }
 
-    // Đảm bảo hàm này nằm trong class Fullboys
     private fun fetchImgUrl(imgsrc: Element?): String? {
         return try {
             imgsrc?.attr("src")
