@@ -1,7 +1,7 @@
 version = 5
 
 cloudstream {
-    authors     = listOf("HindiProviders,XXX")
+    authors     = listOf("GayXXX")
     language    = "en"
     description = "Premium porn with the biggest selection with 4K support"
 
@@ -13,6 +13,6 @@ cloudstream {
      * 3: Beta only
     **/
     status  = 1 // will be 3 if unspecified
-    tvTypes = listOf("TvSeries", "Movie")
+    tvTypes = listOf("TvSeries", "NSFW")
     iconUrl = "https://www.google.com/s2/favicons?domain=freepornvideos.xxx&sz=%size%"
 }
