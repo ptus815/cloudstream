@@ -71,7 +71,6 @@ class Fullboys : MainAPI() {
 
 
     override suspend fun load(url: String): LoadResponse {
-        val soup = app.get(url, cookies = cookies).document
         val title = soup.selectFirst(".title span")?.text().orEmpty()
         val poster: String? = soup.selectFirst("div.video-wrapper .mainPlayerDiv img")?.attr("src")
             ?: soup.selectFirst("head meta[property=og:image]")?.attr("content")
@@ -107,7 +106,6 @@ class Fullboys : MainAPI() {
         subtitleCallback: (SubtitleFile) -> Unit,
         callback: (ExtractorLink) -> Unit
     ): Boolean {
-        val request = app.get(data, cookies = cookies)
         val document = request.document
 
         val scriptElement = document.selectXpath("//script[contains(text(),'flashvars')]").firstOrNull()
