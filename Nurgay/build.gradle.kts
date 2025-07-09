@@ -3,7 +3,7 @@ version = 1
 cloudstream {
     authors     = listOf("GayXXX")
     language    = "en"
-    description = "Dvdgayonline"
+    description = "Nurgay"
 
     /**
      * Status int as the following:
@@ -14,5 +14,5 @@ cloudstream {
     **/
     status  = 1 // will be 3 if unspecified
     tvTypes = listOf("NSFW")
-    iconUrl = "http://mangoporn.net/wp-content/uploads/2024/07/mangoporn.net_.png"
+    iconUrl = "https://nurgay.to/wp-content/uploads/2023/10/faviconV2.png"
 }
