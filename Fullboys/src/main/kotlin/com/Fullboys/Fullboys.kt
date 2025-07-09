@@ -117,52 +117,65 @@ class Fullboys : MainAPI() {
         }
     }
 
-    // ... các đoạn code phía trên giữ nguyên ...
-override suspend fun loadLinks(
-    data: String,
-    isCasting: Boolean,
-    subtitleCallback: (SubtitleFile) -> Unit,
-    callback: (ExtractorLink) -> Unit
-): Boolean {
-    val request = app.get(data, cookies = cookies)
-    val document = request.document
+    override suspend fun loadLinks(
+        data: String,
+        isCasting: Boolean,
+        subtitleCallback: (SubtitleFile) -> Unit,
+        callback: (ExtractorLink) -> Unit
+    ): Boolean {
+        val request = app.get(data, cookies = cookies)
+        val document = request.document
 
-    val scriptElement = document.selectXpath("//script[contains(text(),'flashvars')]").firstOrNull()
-    val scriptData = scriptElement?.data()?.substringAfter("=")?.substringBefore(";")?.trim()
+        val scriptElement = document.selectXpath("//script[contains(text(),'flashvars')]").firstOrNull()
+        val scriptData = scriptElement?.data()?.substringAfter("=")?.substringBefore(";")?.trim()
 
-    if (scriptData.isNullOrBlank()) return false
+        if (scriptData.isNullOrBlank()) return false
 
-    val jsonObject = runCatching { JSONObject(scriptData) }.getOrNull() ?: return false
-    val mediaDefinitions = jsonObject.optJSONArray("mediaDefinitions") ?: return false
+        val jsonObject = runCatching { JSONObject(scriptData) }.getOrNull() ?: return false
+        val mediaDefinitions = jsonObject.optJSONArray("mediaDefinitions") ?: return false
 
-    for (i in 0 until mediaDefinitions.length()) {
-        val mediaObj = mediaDefinitions.optJSONObject(i) ?: continue
-        val quality = mediaObj.optString("quality") ?: continue
-        val videoUrl = mediaObj.optString("videoUrl") ?: continue
-        val extlinkList = mutableListOf<ExtractorLink>()
-        try {
-            M3u8Helper().m3u8Generation(
-                M3u8Helper.M3u8Stream(videoUrl), true
-            ).apmap { stream ->
-                extlinkList.add(
-                    newExtractorLink(
-                        source = name,
-                        name = this.name,
-                        url = stream.streamUrl,
-                        type = ExtractorLinkType.M3U8
-                    ) {
-                        getQualityFromName(
-                            Regex("(\\d+)").find(quality)?.groupValues?.getOrNull(1)
-                        )?.let { this.quality = it }
-                        this.referer = mainUrl
-                    }
-                )
+        for (i in 0 until mediaDefinitions.length()) {
+            val mediaObj = mediaDefinitions.optJSONObject(i) ?: continue
+            val quality = mediaObj.optString("quality") ?: continue
+            val videoUrl = mediaObj.optString("videoUrl") ?: continue
+            val extlinkList = mutableListOf<ExtractorLink>()
+            try {
+                M3u8Helper().m3u8Generation(
+                    M3u8Helper.M3u8Stream(videoUrl), true
+                ).apmap { stream ->
+                    extlinkList.add(
+                        newExtractorLink(
+                            source = name,
+                            name = this.name,
+                            url = stream.streamUrl,
+                            type = ExtractorLinkType.M3U8
+                        ) {
+                            getQualityFromName(
+                                Regex("(\\d+)").find(quality)?.groupValues?.getOrNull(1)
+                            )?.let { this.quality = it }
+                            this.referer = mainUrl
+                        }
+                    )
+                }
+                extlinkList.forEach(callback)
+            } catch (e: Exception) {
+                logError(e)
             }
-            extlinkList.forEach(callback)
+        }
+        return true
+    }
+
+    // Đảm bảo hàm này nằm trong class Fullboys
+    private fun fetchImgUrl(imgsrc: Element?): String? {
+        return try {
+            imgsrc?.attr("src")
+                ?: imgsrc?.attr("data-src")
+                ?: imgsrc?.attr("data-mediabook")
+                ?: imgsrc?.attr("alt")
+                ?: imgsrc?.attr("data-mediumthumb")
+                ?: imgsrc?.attr("data-thumb_url")
         } catch (e: Exception) {
-            logError(e)
+            null
         }
     }
-    return true
-}
 }
