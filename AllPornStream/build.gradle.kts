@@ -1,7 +1,7 @@
 version = 4
 
 cloudstream {
-    authors     = listOf("Phisher98, XXX")
+    authors     = listOf("GayXXX")
     language    = "en"
     description = "Porn Studio"
 
