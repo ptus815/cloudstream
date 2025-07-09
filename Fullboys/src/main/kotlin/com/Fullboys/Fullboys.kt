@@ -47,7 +47,6 @@ class Fullboys : MainAPI() {
                 newMovieSearchResponse(
                     name = title,
                     url = link,
-                    apiName = this.name,
                     type = globalTvType
                 ) {
                     posterUrl = img
@@ -81,7 +80,6 @@ class Fullboys : MainAPI() {
             newMovieSearchResponse(
                 name = title,
                 url = link,
-                apiName = this.name,
                 type = globalTvType
             ) {
                 posterUrl = image
@@ -105,7 +103,6 @@ class Fullboys : MainAPI() {
             newMovieSearchResponse(
                 name = rTitle,
                 url = rUrl,
-                apiName = this.name,
                 type = globalTvType
             ) {
                 posterUrl = rPoster
@@ -144,7 +141,6 @@ class Fullboys : MainAPI() {
             val videoUrl = mediaObj.optString("videoUrl") ?: continue
             val extlinkList = mutableListOf<ExtractorLink>()
             try {
-                // apmap deprecated -> dùng map và awaitAll nếu cần (ở đây gọi sync)
                 M3u8Helper().m3u8Generation(
                     M3u8Helper.M3u8Stream(videoUrl), true
                 ).map { stream ->
