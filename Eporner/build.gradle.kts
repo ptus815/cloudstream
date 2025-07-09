@@ -1,7 +1,7 @@
 version = 1
 
 cloudstream {
-    authors     = listOf("HindiProvider, GayXXX")
+    authors     = listOf("GayXXX")
     language    = "en"
     description = "Eporner"
 
