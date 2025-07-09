@@ -130,18 +130,51 @@ class Fullboys : MainAPI() {
 }
     
     override suspend fun loadLinks(
-        data: String,
-        isCasting: Boolean,
-        subtitleCallback: (SubtitleFile) -> Unit,
-        callback: (ExtractorLink) -> Unit
-    ): Boolean {
+    data: String,
+    isCasting: Boolean,
+    subtitleCallback: (SubtitleFile) -> Unit,
+    callback: (ExtractorLink) -> Unit
+): Boolean {
+    // data là url gốc trang video
+
+    // Lấy lại HTML trang video (nên để tránh miss các link)
+    val doc = app.get(data).document
+
+    // Lấy link từ các button server
+    val serverLinks = doc.select(".box-server button[onclick]").mapNotNull { btn ->
+        // Tìm link trong onclick
+        val onclick = btn.attr("onclick")
+        val regex = Regex("['\"](https?://[^'\"]+\\.mp4)['\"]")
+        val match = regex.find(onclick)
+        val url = match?.groupValues?.getOrNull(1)
+        val label = btn.text().trim()
+        // Có thể đặt chất lượng theo server hoặc tự xác định
+        if (url != null) Pair(url, label) else null
+    }
+
+    // Nếu không tìm thấy, fallback về link cũ
+    if (serverLinks.isEmpty()) {
         callback(
             newExtractorLink(
                 source = name,
                 name = "Fullboys Stream",
-                url = data // ✅ Link .mp4 thật
+                url = data
             )
         )
         return true
+    }
+
+    // Trả về từng chất lượng/server
+    serverLinks.forEach { (url, label) ->
+        callback(
+            newExtractorLink(
+                source = name,
+                name = label, // VD: "Server 1", "Server 2"
+                url = url,
+                type = ExtractorLinkType.MP4 // hoặc M3U8 nếu là HLS
+            )
+        )
+    }
+    return true
     }
 }
