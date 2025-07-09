@@ -71,26 +71,64 @@ class Fullboys : MainAPI() {
 
 
     override suspend fun load(url: String): LoadResponse? {
-        val doc = app.get(url).document
+    val doc = app.get(url).document
 
-        val name = doc.selectFirst("h1.title-detail-media")?.text() ?: return null
-        val videoUrl = doc.selectFirst("video#myvideo")?.attr("src") ?: return null
-        val posterUrl = doc.selectFirst("video#myvideo")?.attr("poster")
-        val description = doc.selectFirst("meta[name=description]")?.attr("content").orEmpty()
-        val tags = doc.select("footer .box-tag a").map { it.text() }
+    // Lấy tên video
+    val name = doc.selectFirst("h1.title-detail")?.text()?.trim() ?: return null
 
-        return MovieLoadResponse(
-            name = name,
-            url = url,
-            apiName = this.name,
+    // Lấy link video từ iframe
+    val iframeSrc = doc.selectFirst("iframe#ifvideo")?.attr("src")
+    val videoUrl = iframeSrc?.let {
+        Regex("[?&]video=([^&]+)").find(it)?.groupValues?.getOrNull(1)
+    }?.let { java.net.URLDecoder.decode(it, "UTF-8") }
+
+    if (videoUrl.isNullOrBlank()) return null
+
+    // Lấy poster từ meta hoặc param poster trên iframe
+    val poster = doc.selectFirst("meta[property=og:image]")?.attr("content")
+        ?: iframeSrc?.let {
+            Regex("[?&]poster=([^&]+)").find(it)?.groupValues?.getOrNull(1)
+        }?.let { java.net.URLDecoder.decode(it, "UTF-8") }
+
+    // Mô tả
+    val description = doc.selectFirst("meta[name=description]")?.attr("content").orEmpty()
+
+    // Tags
+    val tags = doc.select("div.video-tags a").map { it.text().trim() }
+
+    // Gợi ý: lấy ảnh preview (nếu muốn)
+    val previews = doc.select("img.preview-image").map { it.attr("src") }
+
+    // Gợi ý: lấy video liên quan
+    val recommendations = doc.select("article.movie-item").mapNotNull { el ->
+        val aTag = el.selectFirst("a") ?: return@mapNotNull null
+        val recUrl = fixUrl(aTag.attr("href"))
+        val recName = aTag.attr("title") ?: aTag.selectFirst("h2.title")?.text() ?: return@mapNotNull null
+        val recPoster = aTag.selectFirst("img")?.attr("src")
+        MovieSearchResponse(
+            name = recName,
+            url = recUrl,
+            apiName = this@Fullboys.name,
             type = TvType.NSFW,
-            dataUrl = videoUrl, // ✅ Truyền video mp4 thật
-            posterUrl = posterUrl,
-            plot = description,
-            tags = tags
+            posterUrl = recPoster
         )
     }
 
+    return MovieLoadResponse(
+        name = name,
+        url = url,
+        apiName = this.name,
+        type = TvType.NSFW,
+        dataUrl = videoUrl,
+        posterUrl = poster,
+        plot = description,
+        tags = tags
+    ).apply {
+        this.recommendations = recommendations
+        // Nếu muốn, có thể thêm previews vào 1 trường custom nếu app hỗ trợ
+    }
+}
+    
     override suspend fun loadLinks(
         data: String,
         isCasting: Boolean,
