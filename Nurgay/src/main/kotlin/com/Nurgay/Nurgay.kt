@@ -23,7 +23,7 @@ class Nurgay : MainAPI() {
 
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
         val document = app.get("$mainUrl${request.data}/page/$page/").document
-        val home     = document.select("div.tdb-block-inner > div.td-cpt-post").mapNotNull { it.toSearchResult() }
+        val home     = document.select("div.slide loop-video bx-clone > div.slide loop-video").mapNotNull { it.toSearchResult() }
 
         return newHomePageResponse(
                 list    = HomePageList(
@@ -50,9 +50,9 @@ class Nurgay : MainAPI() {
 
         for (i in 1..5) {
             val document = app.get("$mainUrl/page/$i/?s=$query").document
-            val results = document.select("div.tdb-block-inner > div.td-cpt-post").mapNotNull { it.toSearchResult() }
+            val results = document.select("div.slide loop-video bx-clone > div.slide loop-video").mapNotNull { it.toSearchResult() }
 
-            if (!searchResponse.containsAll(results)) {
+            if (!searchResponse.containsAll(results)) 
                 searchResponse.addAll(results)
             } else {
                 break
@@ -89,7 +89,7 @@ class Nurgay : MainAPI() {
             )
         }
 
-        document.select("div.wp-block-button > a").amap {
+        document.select("div.title-block box-shadow" a").amap {
             loadExtractor(
                 it.attr("href"),
                 referer = data,
