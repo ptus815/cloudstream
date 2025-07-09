@@ -8,7 +8,7 @@ import org.jsoup.nodes.Element
 import org.json.JSONObject
 import org.json.JSONArray
 
-class git pull origin buildsFxggxt : MainAPI() {
+class Fxggxt : MainAPI() {
     override var mainUrl = "https://fxggxt.com"
     override var name = "Fxggxt"
 override val hasMainPage = true
