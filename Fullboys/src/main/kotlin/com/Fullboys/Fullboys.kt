@@ -8,7 +8,6 @@ import com.lagradost.cloudstream3.mvvm.logError
 import com.lagradost.cloudstream3.utils.M3u8Helper
 import com.lagradost.cloudstream3.utils.getQualityFromName
 import org.json.JSONObject
-import com.lagradost.cloudstream3.ExtractorLinkType
 
 class Fullboys : MainAPI() {
     private val globalTvType = TvType.NSFW
@@ -171,8 +170,7 @@ class Fullboys : MainAPI() {
             newExtractorLink(
                 source = name,
                 name = label, // VD: "Server 1", "Server 2"
-                url = url,
-                type = ExtractorLinkType.DIRECT // hoặc M3U8 nếu là HLS
+                url = url
             )
         )
     }
