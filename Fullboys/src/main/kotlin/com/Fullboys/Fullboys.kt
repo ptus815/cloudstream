@@ -171,7 +171,7 @@ class Fullboys : MainAPI() {
                 source = name,
                 name = label, // VD: "Server 1", "Server 2"
                 url = url,
-                type = ExtractorLinkType.MP4 // hoặc M3U8 nếu là HLS
+                type = ExtractorLinkType.DIRECT // hoặc M3U8 nếu là HLS
             )
         )
     }
