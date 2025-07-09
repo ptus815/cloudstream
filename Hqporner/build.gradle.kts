@@ -1,7 +1,7 @@
-version = 6
+version = 1
 
 cloudstream {
-    authors     = listOf("Phishe, xxx")
+    authors     = listOf("GayXXX")
     language    = "en"
     description = "(VPN) Premium Porn with 4K support"
 
