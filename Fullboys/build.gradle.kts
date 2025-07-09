@@ -3,7 +3,7 @@ version = 1
 cloudstream {
     authors     = listOf("GayXXX")
     language    = "vi"
-    description = "Fullboys is the best free full length porn video site. Choose from millions of hardcore videos that stream quickly and in high quality and only full length"
+    description = "Fullboys is the best free full length Asian porn video site. Choose from millions of hardcore videos that stream quickly and in high quality and only full length"
 
     /**
      * Status int as the following:
