@@ -29,63 +29,46 @@ class Fullboys : MainAPI() {
         "/topic/video/viet-nam" to "Vietnamese"
     )
 
-    private val cookies = mapOf(
-        "hasVisited" to "1",
-        "accessAgeDisclaimerPH" to "1"
-    )
-
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
-        try {
-            val categoryData = request.data
-            val categoryName = request.name
-            val pagedLink = if (page > 0) categoryData + page else categoryData
-            val soup = app.get(pagedLink, cookies = cookies).document
-            val home = soup.select("div.sectionWrapper div.wrap").mapNotNull { it ->
-                val title = it.selectFirst("span.title a")?.text().orEmpty()
-                val link = fixUrlNull(it.selectFirst("a")?.attr("href")) ?: return@mapNotNull null
-                val img = fetchImgUrl(it.selectFirst("img"))
-                newMovieSearchResponse(
-                    name = title,
-                    url = link,
-                    type = globalTvType
-                ) {
-                    posterUrl = img
-                }
-            }
-            if (home.isNotEmpty()) {
-                return newHomePageResponse(
-                    list = HomePageList(
-                        name = categoryName,
-                        list = home,
-                        isHorizontalImages = true
-                    ),
-                    hasNext = true
-                )
-            } else {
-                throw ErrorLoadingException("No homepage data found!")
-            }
-        } catch (e: Exception) {
-            logError(e)
-        }
-        throw ErrorLoadingException()
+        val pageUrl = if (page == 1) "$mainUrl${request.data}" else "$mainUrl${request.data}?page=$page"
+        val document = app.get(pageUrl).document
+
+        val items = document.select("article.movie-item").mapNotNull { toSearchItem(it) }
+
+        return newHomePageResponse(
+            HomePageList(
+                name = request.name,
+                list = items,
+                isHorizontalImages = true
+            ),
+            hasNext = items.isNotEmpty()
+        )
+    }
+
+    private fun toSearchItem(element: Element): SearchResponse? {
+        val aTag = element.selectFirst("a") ?: return null
+        val url = fixUrl(aTag.attr("href"))
+        val name = aTag.selectFirst("h2.title")?.text() ?: return null
+
+        val image = aTag.selectFirst("img")?.let {
+            it.attr("data-cfsrc").takeIf { src -> src.isNotBlank() } ?: it.attr("src")
+        } ?: return null
+
+        return MovieSearchResponse(
+            name = name,
+            url = url,
+            apiName = this@Fullboys.name,
+            type = TvType.NSFW,
+            posterUrl = image
+        )
     }
 
     override suspend fun search(query: String): List<SearchResponse> {
-        val url = "$mainUrl/video/search?search=${query}"
-        val document = app.get(url, cookies = cookies).document
-        return document.select("div.sectionWrapper div.wrap").mapNotNull { it ->
-            val title = it.selectFirst("span.title a")?.text() ?: return@mapNotNull null
-            val link = fixUrlNull(it.selectFirst("a")?.attr("href")) ?: return@mapNotNull null
-            val image = fetchImgUrl(it.selectFirst("img"))
-            newMovieSearchResponse(
-                name = title,
-                url = link,
-                type = globalTvType
-            ) {
-                posterUrl = image
-            }
-        }.distinctBy { it.url }
+        val url = "$mainUrl/home?search=$query"
+        val document = app.get(url).document
+        return document.select("article.movie-item").mapNotNull { toSearchItem(it) }
     }
+
 
     override suspend fun load(url: String): LoadResponse {
         val soup = app.get(url, cookies = cookies).document
