@@ -14,7 +14,7 @@ class Fullboys : MainAPI() {
     override var mainUrl = "https://fullboys.com"
     override var name = "Fullboys"
     override val hasMainPage = true
-    override var lang = "en"
+    override var lang = "vi"
     override val hasQuickSearch = false
     override val hasChromecastSupport = true
     override val hasDownloadSupport = true
