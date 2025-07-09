@@ -50,7 +50,7 @@ class Nurgay : MainAPI() {
 
         for (i in 1..5) {
             val document = app.get("$mainUrl/page/$i/?s=$query").document
-            val results = document.select("div.slide loop-video").mapNotNull { it.toSearchResult() }
+            val results = document.select("slide loop-video bx-clone").mapNotNull { it.toSearchResult() }
 
             if (!searchResponse.containsAll(results)) {
                 searchResponse.addAll(results)
