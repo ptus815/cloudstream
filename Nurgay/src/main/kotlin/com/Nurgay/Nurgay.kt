@@ -23,7 +23,7 @@ class Nurgay : MainAPI() {
 
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
         val document = app.get("$mainUrl${request.data}/page/$page/").document
-        val home     = document.select("div.slide loop-video").mapNotNull { it.toSearchResult() }
+        val home     = document.select("div.slide loop-video bx-clone").mapNotNull { it.toSearchResult() }
 
         return newHomePageResponse(
                 list    = HomePageList(
