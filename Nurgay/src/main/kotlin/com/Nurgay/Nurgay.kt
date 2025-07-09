@@ -4,7 +4,7 @@ import org.jsoup.nodes.Element
 import com.lagradost.cloudstream3.*
 import com.lagradost.cloudstream3.utils.*
 
-class Onlyjerk : MainAPI() {
+class Nurgay : MainAPI() {
     override var mainUrl              = "https://nurgay.to"
     override var name                 = "Nurgay"
     override val hasMainPage          = true
