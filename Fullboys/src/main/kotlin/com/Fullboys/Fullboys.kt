@@ -70,34 +70,25 @@ class Fullboys : MainAPI() {
     }
 
 
-    override suspend fun load(url: String): LoadResponse {
-        val title = soup.selectFirst(".title span")?.text().orEmpty()
-        val poster: String? = soup.selectFirst("div.video-wrapper .mainPlayerDiv img")?.attr("src")
-            ?: soup.selectFirst("head meta[property=og:image]")?.attr("content")
-        val tags = soup.select("div.categoriesWrapper a")
-            .map { it?.text()?.trim().orEmpty().replace(", ", "") }
-        val actors = soup.select("div.video-wrapper div.video-info-row.userRow div.userInfo div.usernameWrap a")
-            .map { it.text() }
-        val relatedVideo = soup.select("li.fixedSizeThumbContainer").mapNotNull {
-            val rTitle = it.selectFirst("div.phimage a")?.attr("title").orEmpty()
-            val rUrl = fixUrlNull(it.selectFirst("div.phimage a")?.attr("href")) ?: return@mapNotNull null
-            val rPoster = fixUrlNull(it.selectFirst("div.phimage img.js-videoThumb")?.attr("src"))
-            newMovieSearchResponse(
-                name = rTitle,
-                url = rUrl,
-                type = globalTvType
-            ) {
-                posterUrl = rPoster
-            }
-        }
+    override suspend fun load(url: String): LoadResponse? {
+        val doc = app.get(url).document
 
-        return newMovieLoadResponse(title, url, TvType.NSFW, url) {
-            this.posterUrl = poster
-            this.plot = title
-            this.tags = tags
-            addActors(actors)
-            this.recommendations = relatedVideo
-        }
+        val name = doc.selectFirst("h1.title-detail-media")?.text() ?: return null
+        val videoUrl = doc.selectFirst("video#myvideo")?.attr("src") ?: return null
+        val posterUrl = doc.selectFirst("video#myvideo")?.attr("poster")
+        val description = doc.selectFirst("meta[name=description]")?.attr("content").orEmpty()
+        val tags = doc.select("footer .box-tag a").map { it.text() }
+
+        return MovieLoadResponse(
+            name = name,
+            url = url,
+            apiName = this.name,
+            type = TvType.NSFW,
+            dataUrl = videoUrl, // ✅ Truyền video mp4 thật
+            posterUrl = posterUrl,
+            plot = description,
+            tags = tags
+        )
     }
 
     override suspend fun loadLinks(
@@ -106,57 +97,13 @@ class Fullboys : MainAPI() {
         subtitleCallback: (SubtitleFile) -> Unit,
         callback: (ExtractorLink) -> Unit
     ): Boolean {
-        val document = request.document
-
-        val scriptElement = document.selectXpath("//script[contains(text(),'flashvars')]").firstOrNull()
-        val scriptData = scriptElement?.data()?.substringAfter("=")?.substringBefore(";")?.trim()
-
-        if (scriptData.isNullOrBlank()) return false
-
-        val jsonObject = runCatching { JSONObject(scriptData) }.getOrNull() ?: return false
-        val mediaDefinitions = jsonObject.optJSONArray("mediaDefinitions") ?: return false
-
-        for (i in 0 until mediaDefinitions.length()) {
-            val mediaObj = mediaDefinitions.optJSONObject(i) ?: continue
-            val quality = mediaObj.optString("quality") ?: continue
-            val videoUrl = mediaObj.optString("videoUrl") ?: continue
-            val extlinkList = mutableListOf<ExtractorLink>()
-            try {
-                M3u8Helper().m3u8Generation(
-                    M3u8Helper.M3u8Stream(videoUrl), true
-                ).map { stream ->
-                    extlinkList.add(
-                        newExtractorLink(
-                            source = name,
-                            name = this.name,
-                            url = stream.streamUrl,
-                            type = ExtractorLinkType.M3U8
-                        ) {
-                            getQualityFromName(
-                                Regex("(\\d+)").find(quality)?.groupValues?.getOrNull(1)
-                            )?.let { this.quality = it }
-                            this.referer = mainUrl
-                        }
-                    )
-                }
-                extlinkList.forEach(callback)
-            } catch (e: Exception) {
-                logError(e)
-            }
-        }
+        callback(
+            newExtractorLink(
+                source = name,
+                name = "Fullboys Stream",
+                url = data // ✅ Link .mp4 thật
+            )
+        )
         return true
-    }
-
-    private fun fetchImgUrl(imgsrc: Element?): String? {
-        return try {
-            imgsrc?.attr("src")
-                ?: imgsrc?.attr("data-src")
-                ?: imgsrc?.attr("data-mediabook")
-                ?: imgsrc?.attr("alt")
-                ?: imgsrc?.attr("data-mediumthumb")
-                ?: imgsrc?.attr("data-thumb_url")
-        } catch (e: Exception) {
-            null
-        }
     }
 }
