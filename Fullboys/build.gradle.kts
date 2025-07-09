@@ -1,9 +1,9 @@
 version = 2
 
 cloudstream {
-    authors     = listOf("Coxju")
-    language    = "en"
-    description = "FullPorner is the best free full length porn video site. Choose from millions of hardcore videos that stream quickly and in high quality and only full length"
+    authors     = listOf("GayXXX")
+    language    = "vi"
+    description = "Fullboys is the best free full length porn video site. Choose from millions of hardcore videos that stream quickly and in high quality and only full length"
 
     /**
      * Status int as the following:
@@ -14,5 +14,5 @@ cloudstream {
     **/
     status  = 1 // will be 3 if unspecified
     tvTypes = listOf("NSFW")
-    iconUrl = "https://www.google.com/s2/favicons?domain=fullporner.com&sz=%size%"
+    iconUrl = "https://fullboys.com/Content/image/logo-144-v9.png"
 }
