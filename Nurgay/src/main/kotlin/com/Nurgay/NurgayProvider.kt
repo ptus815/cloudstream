@@ -12,8 +12,6 @@ class NurgayProvider: Plugin() {
         registerExtractorAPI(BigwarpIO())
         registerExtractorAPI(Listeamed())
         registerExtractorAPI(Beamed())
-        registerExtractorAPI(Bgwp())
-        registerExtractorAPI(Voe())
         registerExtractorAPI(StreamTapeto())
     }
 }
