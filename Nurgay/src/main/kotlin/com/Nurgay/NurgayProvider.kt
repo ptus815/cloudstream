@@ -9,10 +9,11 @@ class NurgayProvider: Plugin() {
     override fun load(context: Context) {
         registerMainAPI(Nurgay())
         registerExtractorAPI(Dooodster())
-        registerExtractorAPI(Bigwarp())
+        registerExtractorAPI(BigwarpIO())
         registerExtractorAPI(Listeamed())
         registerExtractorAPI(Beamed())
         registerExtractorAPI(Bgwp())
         registerExtractorAPI(Voe())
+        registerExtractorAPI(StreamTapeto())
     }
 }
