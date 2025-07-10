@@ -86,7 +86,7 @@ override suspend fun loadLinks(
         val parsedList = data.fromJson<List<String>>()
         parsedList.map { url ->
             launch {
-                Log.d("Phisher", url)
+                Log.d("Tuangay", url)
                 loadExtractor(url, "$mainUrl/", subtitleCallback, callback)
             }
         }.joinAll()
