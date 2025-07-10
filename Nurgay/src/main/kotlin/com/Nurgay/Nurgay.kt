@@ -3,6 +3,15 @@ package com.Nurgay
 import com.lagradost.cloudstream3.*
 import com.lagradost.cloudstream3.utils.*
 import org.jsoup.nodes.Element
+import com.lagradost.cloudstream3.utils.ExtractorLink
+import com.lagradost.cloudstream3.utils.loadExtractor
+import com.lagradost.cloudstream3.utils.AppUtils.toJson
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.joinAll
+import kotlinx.coroutines.launch
+import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
+import com.lagradost.api.Log
 
 class Nurgay : MainAPI() {
     override var mainUrl = "https://nurgay.to"
@@ -69,29 +78,24 @@ class Nurgay : MainAPI() {
         )
     }
 
-override suspend fun loadLinks(data: String, isCasting: Boolean, subtitleCallback: (SubtitleFile) -> Unit, callback: (ExtractorLink) -> Unit): Boolean {
-        val document = app.get(data).document
+override suspend fun loadLinks(
+        data: String,
+        isCasting: Boolean,
+        subtitleCallback: (SubtitleFile) -> Unit,
+        callback: (ExtractorLink) -> Unit
+    ): Boolean = coroutineScope {
+        val parsedList = data.fromJson<List<String>>()
+        parsedList.map { url ->
+            launch {
+                Log.d("Phisher", url)
+                loadExtractor(url, "$mainUrl/", subtitleCallback, callback)
+            }
+        }.joinAll()
 
-        document.select("button.button_choice_server").amap {
-            val onclick = it.attr("onclick")
-            val regex = Regex("playEmbed\\(event,'(https://[^']+)'")
-            val url = regex.find(onclick)?.groupValues?.get(1) ?: return@amap
-            loadExtractor(
-                url,
-                data,
-                subtitleCallback,
-                callback
-            )
-        }
-
-        document.select(".tabcontent > iframe").amap {
-            loadExtractor(
-                it.attr("data-litespeed-src"),
-                referer = data,
-                subtitleCallback,
-                callback
-            )
-        }
-        return true
+        true
     }
+
+    val gson = Gson()
+    private inline fun <reified T> String.fromJson(): T = gson.fromJson(this, object : TypeToken<T>() {}.type)
 }
+
