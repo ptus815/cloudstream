@@ -22,81 +22,72 @@ class Nurgay : MainAPI() {
     )
 
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
-        val document = app.get("$mainUrl${request.data}/page/$page/").document
-        val home     = document.select("article.loop-video.thumb-block").mapNotNull { it.toSearchResult() }
+        val url = if (page == 1) "$mainUrl" else "$mainUrl/page/$page/"
+        val doc = app.get(url).document
+        val items = doc.select("div.thumb-block").mapNotNull { it.toSearchResult() }
 
         return newHomePageResponse(
-                list    = HomePageList(
-                name    = request.name,
-                list    = home,
-                isHorizontalImages = true
-            ),
-            hasNext = true
+            HomePageList(request.name, items, isHorizontalImages = false),
+            hasNext = items.isNotEmpty()
         )
     }
 
-    private fun Element.toSearchResult(): SearchResponse {
-        val title     = this.select("a").attr("title")
-        val href      = this.select("a").attr("href")
-        val posterUrl = this.select("a > span").attr("style").substringAfter("url(").substringBefore(")")
 
-        return newMovieSearchResponse(title, href, TvType.Movie) {
-            this.posterUrl = posterUrl
-        }
+      private fun Element.toSearchResult(): SearchResponse? {
+        val aTag = selectFirst("a") ?: return null
+        val href = fixUrl(aTag.attr("href"))
+        val title = aTag.selectFirst(".entry-header span")?.text()?.trim() ?: return null
+        val image = aTag.selectFirst("img")?.attr("src") ?: return null
+
+        return MovieSearchResponse(
+            name = title,
+            url = href,
+            apiName = this@Fullboys.name,
+            type = TvType.NSFW,
+            posterUrl = image
+        )
     }
+
 
     override suspend fun search(query: String): List<SearchResponse> {
-        val searchResponse = mutableListOf<SearchResponse>()
-
-        for (i in 1..5) {
-            val document = app.get("$mainUrl/page/$i/?s=$query").document
-            val results = document.select("article.loop-video.thumb-block").mapNotNull { it.toSearchResult() }
-
-            if (!searchResponse.containsAll(results)) {
-                searchResponse.addAll(results)
-            } else {
-                break
-            }
-
-            if (results.isEmpty()) break
-        }
-
-        return searchResponse
+        val url = "$mainUrl/?s=$query"
+        val doc = app.get(url).document
+        return doc.select("div.thumb-block").mapNotNull { it.toSearchResult() }
     }
 
-    override suspend fun load(url: String): LoadResponse {
-        val document = app.get(url).document
+    
+    override suspend fun load(url: String): LoadResponse? {
+    val doc = app.get(url).document
 
-        val title       = document.select("meta[property=og:title]").attr("content")
-        val poster      = document.select("meta[property='og:image']").attr("content")
-        val description = document.select("meta[property=og:description]").attr("content")
+    val name = doc.selectFirst("meta[property=og:title]")?.attr("content") ?: return null
+    val videoUrl = doc.selectFirst("video#myvideo")?.attr("src") ?: return null
+    val posterUrl = doc.selectFirst("meta[property=og:image]")?.attr("content")
+    val description = doc.selectFirst("meta[property=og:description]")?.attr("content").orEmpty()
 
+    return MovieLoadResponse(
+        name = name,
+        url = url,
+        apiName = this.name,
+        type = TvType.NSFW,
+        dataUrl = videoUrl,
+        posterUrl = posterUrl,
+        plot = description
+    )
+}
 
-        return newMovieLoadResponse(title, url, TvType.NSFW, url) {
-            this.posterUrl = poster
-            
-        }
-    }
-
-    override suspend fun loadLinks(data: String, isCasting: Boolean, subtitleCallback: (SubtitleFile) -> Unit, callback: (ExtractorLink) -> Unit): Boolean {
-        val document = app.get(data).document
-        document.select(".tabcontent > iframe").amap {
-            loadExtractor(
-                it.attr("data-litespeed-src"),
-                referer = data,
-                subtitleCallback,
-                callback
+    override suspend fun loadLinks(
+        data: String,
+        isCasting: Boolean,
+        subtitleCallback: (SubtitleFile) -> Unit,
+        callback: (ExtractorLink) -> Unit
+    ): Boolean {
+        callback(
+            newExtractorLink(
+                source = name,
+                name = "Nurgay Stream",
+                url = data
             )
-        }
-
-        document.select("div.title-block box-shadow a").amap {
-            loadExtractor(
-                it.attr("href"),
-                referer = data,
-                subtitleCallback,
-                callback
-            )
-        }
+        )
         return true
     }
 }
