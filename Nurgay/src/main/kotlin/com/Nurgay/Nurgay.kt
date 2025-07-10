@@ -42,7 +42,7 @@ class Nurgay : MainAPI() {
         return MovieSearchResponse(
             name = title,
             url = href,
-            apiName = this@Fullboys.name,
+            apiName = this@Nurgay.name,
             type = TvType.NSFW,
             posterUrl = image
         )
