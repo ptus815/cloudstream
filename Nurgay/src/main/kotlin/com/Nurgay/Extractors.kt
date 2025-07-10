@@ -11,6 +11,8 @@ import com.lagradost.cloudstream3.utils.getQualityFromName
 import com.lagradost.cloudstream3.utils.newExtractorLink
 import com.lagradost.cloudstream3.extractors.Voe
 import com.lagradost.cloudstream3.extractors.StreamTape
+import com.lagradost.cloudstream3.utils.INFER_TYPE
+import com.lagradost.cloudstream3.utils.Qualities
 
 class Dooodster : DoodLaExtractor() {
     override var mainUrl = "https://dooodster.com"
@@ -28,39 +30,49 @@ class StreamTapeto : StreamTape() {
     override var mainUrl = "https://streamtape.to"
 }
 
-open class BigwarpIO : ExtractorApi() {
-    override var name = "Bigwarp"
-    override var mainUrl = "https://bigwarp.io"
-    override val requiresReferer = false
+override suspend fun getUrl(url: String, referer: String?): List<ExtractorLink>? {
+        val response0 = app.get(url).text // html of DoodStream page to look for /pass_md5/...
+        val md5 =mainUrl+(Regex("/pass_md5/[^']*").find(response0)?.value ?: return null)  // get https://dood.ws/pass_md5/...
+        val trueUrl = app.get(md5, referer = url).text + "zUEJeL3mUN?token=" + md5.substringAfterLast("/")   //direct link to extract  (zUEJeL3mUN is random)
+        val quality = Regex("\\d{3,4}p").find(response0.substringAfter("<title>").substringBefore("</title>"))?.groupValues?.get(0)
+        return listOf(
+            newExtractorLink(
+                source = this.name,
+                name = this.name,
+                url = trueUrl
+            ) {
+                this.referer = mainUrl
+                this.quality = getQualityFromName(quality)
+            }
+        ) // links are valid in 8h
 
-    private val sourceRegex = Regex("""file:\s*['"](.*?)['"],label:\s*['"](.*?)['"]""")
-    private val qualityRegex = Regex("""\d+x(\d+) .*""")
+    }
+}
+
+open class Bigwarp : ExtractorApi() {
+    override val name = "Bigwarp"
+    override val mainUrl = "https://bigwarp.io"
+    override val requiresReferer = false
 
     override suspend fun getUrl(
         url: String,
         referer: String?,
-        subtitleCallback: (SubtitleFile) -> Unit,
-        callback: (ExtractorLink) -> Unit
-    ) {
-        Log.d("Tuangayxx","I'm Here")
-
-        val resp = app.get(url).text
-        Log.d("Tuangayxx",resp)
-        for (sourceMatch in sourceRegex.findAll(resp)) {
-            val label = sourceMatch.groupValues[2]
-
-            callback.invoke(
-                newExtractorLink(
-                    name,
-                    "$name ${label.split(" ", limit = 2).getOrNull(1)}",
-                    sourceMatch.groupValues[1], // streams are usually in mp4 format
-                ) {
-                    this.referer = url
-                    this.quality =
-                        qualityRegex.find(label)?.groupValues?.getOrNull(1)?.toIntOrNull()
-                            ?: Qualities.Unknown.value
-                }
-            )
+    ): List<ExtractorLink>? {
+        val response =app.get(url).document
+        val script = response.selectFirst("script:containsData(sources)")?.data().toString()
+        Regex("sources:\\s*\\[.file:\"(.*)\".*").find(script)?.groupValues?.get(1)?.let { link ->
+                return listOf(
+                    newExtractorLink(
+                        source = name,
+                        name = name,
+                        url = link,
+                        INFER_TYPE
+                    ) {
+                        this.referer = referer ?: "$mainUrl/"
+                        this.quality = Qualities.P1080.value
+                    }
+                )
         }
+        return null
     }
 }
