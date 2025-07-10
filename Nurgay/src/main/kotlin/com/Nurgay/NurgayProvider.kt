@@ -13,5 +13,6 @@ class NurgayProvider: Plugin() {
         registerExtractorAPI(Listeamed())
         registerExtractorAPI(Beamed())
         registerExtractorAPI(Bgwp())
+        registerExtractorAPI(Voe())
     }
 }
