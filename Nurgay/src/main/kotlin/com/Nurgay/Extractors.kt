@@ -30,25 +30,6 @@ class StreamTapeto : StreamTape() {
     override var mainUrl = "https://streamtape.to"
 }
 
-override suspend fun getUrl(url: String, referer: String?): List<ExtractorLink>? {
-        val response0 = app.get(url).text // html of DoodStream page to look for /pass_md5/...
-        val md5 =mainUrl+(Regex("/pass_md5/[^']*").find(response0)?.value ?: return null)  // get https://dood.ws/pass_md5/...
-        val trueUrl = app.get(md5, referer = url).text + "zUEJeL3mUN?token=" + md5.substringAfterLast("/")   //direct link to extract  (zUEJeL3mUN is random)
-        val quality = Regex("\\d{3,4}p").find(response0.substringAfter("<title>").substringBefore("</title>"))?.groupValues?.get(0)
-        return listOf(
-            newExtractorLink(
-                source = this.name,
-                name = this.name,
-                url = trueUrl
-            ) {
-                this.referer = mainUrl
-                this.quality = getQualityFromName(quality)
-            }
-        ) // links are valid in 8h
-
-    }
-}
-
 open class Bigwarp : ExtractorApi() {
     override val name = "Bigwarp"
     override val mainUrl = "https://bigwarp.io"
@@ -58,10 +39,11 @@ open class Bigwarp : ExtractorApi() {
         url: String,
         referer: String?,
     ): List<ExtractorLink>? {
-        val response =app.get(url).document
-        val script = response.selectFirst("script:containsData(sources)")?.data().toString()
-        Regex("sources:\\s*\\[.file:\"(.*)\".*").find(script)?.groupValues?.get(1)?.let { link ->
-                return listOf(
+        return try {
+            val response = app.get(url).document
+            val script = response.selectFirst("script:containsData(sources)")?.data().toString()
+            Regex("sources:\\s*\\[.*file:\"(.*)\".*").find(script)?.groupValues?.get(1)?.let { link ->
+                listOf(
                     newExtractorLink(
                         source = name,
                         name = name,
@@ -72,7 +54,10 @@ open class Bigwarp : ExtractorApi() {
                         this.quality = Qualities.P1080.value
                     }
                 )
+            }
+        } catch (e: Exception) {
+            Log.e(e) // Log error for debugging
+            null
         }
-        return null
     }
 }
