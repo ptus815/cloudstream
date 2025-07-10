@@ -79,9 +79,7 @@ class Nurgay : MainAPI() {
             newExtractorLink(
                 source = name,
                 name = "Nurgay",
-                url = data,
-                referer = mainUrl,
-                quality = Qualities.Unknown.value
+                url = data
             )
         )
         return true
