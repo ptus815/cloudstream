@@ -28,14 +28,19 @@ class Nurgay : MainAPI() {
     )
 
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
-        val url = if (page == 1) "$mainUrl/${request.data}" else "$mainUrl/${request.data}/page/$page/"
-        val doc = app.get(url).document
-        val items = doc.select("div.thumb-block").mapNotNull { it.toSearchResult() }
+        return try {
+            val url = if (page == 1) "$mainUrl/${request.data}" else "$mainUrl/${request.data}/page/$page/"
+            val doc = app.get(url).document
+            val items = doc.select("div.thumb-block").mapNotNull { it.toSearchResult() }
 
-        return newHomePageResponse(
-            HomePageList(name = request.name, list = items),
-            hasNext = items.isNotEmpty()
-        )
+            newHomePageResponse(
+                HomePageList(name = request.name, list = items),
+                hasNext = items.isNotEmpty()
+            )
+        } catch (e: Exception) {
+            Log.e(e) // Log error for debugging
+            newHomePageResponse(HomePageList(name = request.name, list = emptyList()), hasNext = false)
+        }
     }
 
     private fun Element.toSearchResult(): SearchResponse? {
@@ -54,39 +59,49 @@ class Nurgay : MainAPI() {
     }
 
     override suspend fun search(query: String): List<SearchResponse> {
-        val url = "$mainUrl/?s=$query"
-        val doc = app.get(url).document
-        return doc.select("div.thumb-block").mapNotNull { it.toSearchResult() }
+        return try {
+            val url = "$mainUrl/?s=$query"
+            val doc = app.get(url).document
+            doc.select("div.thumb-block").mapNotNull { it.toSearchResult() }
+        } catch (e: Exception) {
+            Log.e(e) // Log error for debugging
+            emptyList()
+        }
     }
 
     override suspend fun load(url: String): LoadResponse {
-        val request = app.get(url)
-        val document = request.document
-        val title =
-            document.selectFirst("div.data > h1")?.text()?.trim().toString()
-        var posterUrl = fixUrlNull(document.selectFirst("meta[property=og:image]")?.attr("content"))
-        if (posterUrl.isNullOrEmpty()) {
+        return try {
+            val request = app.get(url)
+            val document = request.document
+            val title = document.selectFirst("div.data > h1")?.text()?.trim().toString()
+            var posterUrl = fixUrlNull(document.selectFirst("meta[property=og:image]")?.attr("content"))
+            if (posterUrl.isNullOrEmpty()) {
                 posterUrl = fixUrlNull(document.select("div.poster img").attr("src"))
-        }
-        val description = document.select("div.wp-content > p").text().trim()
-            val episodes =
-                document.select("ul#playeroptionsul > li").map {
-                    val name = it.selectFirst("span.title")?.text()
-                    val type = it.attr("data-type")
-                    val post = it.attr("data-post")
-                    val nume = it.attr("data-nume")
-                    Episode(
-                        LinkData(type, post,nume).toJson(),
-                        name,
-                    )
-                }
+            }
+            val description = document.select("div.wp-content > p").text().trim()
+            val episodes = document.select("ul#playeroptionsul > li").map {
+                val name = it.selectFirst("span.title")?.text()
+                val type = it.attr("data-type")
+                val post = it.attr("data-post")
+                val nume = it.attr("data-nume")
+                Episode(
+                    LinkData(type, post, nume).toJson(),
+                    name,
+                )
+            }
 
-            return newTvSeriesLoadResponse(title, url, TvType.TvSeries, episodes) {
+            newTvSeriesLoadResponse(title, url, TvType.TvSeries, episodes) {
                 this.posterUrl = posterUrl
                 this.plot = description
             }
+        } catch (e: Exception) {
+            Log.e(e) // Log error for debugging
+            newTvSeriesLoadResponse("Unknown Title", url, TvType.TvSeries, emptyList()) {
+                this.posterUrl = null
+                this.plot = "No description available."
+            }
         }
-
+    }
 
     override suspend fun loadLinks(
         data: String,
@@ -94,17 +109,24 @@ class Nurgay : MainAPI() {
         subtitleCallback: (SubtitleFile) -> Unit,
         callback: (ExtractorLink) -> Unit
     ): Boolean {
+        return try {
             val loadData = tryParseJson<LinkData>(data)
             val source = app.post(
                 url = "$mainUrl/wp-admin/admin-ajax.php", data = mapOf(
                     "action" to "doo_player_ajax", "post" to "${loadData?.post}", "nume" to "${loadData?.nume}", "type" to "${loadData?.type}"
                 ), referer = data, headers = mapOf("Accept" to "*/*", "X-Requested-With" to "XMLHttpRequest"
-                )).parsed<ResponseHash>().embed_url.getIframe()
+                )
+            ).parsed<ResponseHash>().embed_url.getIframe()
             if (!source.contains("youtube")) loadExtractor(
                 source,
                 "$directUrl/",
                 subtitleCallback,
                 callback
             )
-        return true
+            true
+        } catch (e: Exception) {
+            Log.e(e) // Log error for debugging
+            false
         }
+    }
+}
