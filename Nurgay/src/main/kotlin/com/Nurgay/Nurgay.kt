@@ -36,8 +36,8 @@ class Nurgay : MainAPI() {
       private fun Element.toSearchResult(): SearchResponse? {
         val aTag = selectFirst("a") ?: return null
         val href = fixUrl(aTag.attr("href"))
-        val title = aTag.selectFirst(".entry-header span")?.text()?.trim() ?: return null
-        val image = aTag.selectFirst("img")?.attr("src") ?: return null
+        val title = aTag.selectFirst("title")?.text()?.trim() ?: return null
+        val image = aTag.selectFirst("video-img")?.attr("src") ?: return null
 
         return MovieSearchResponse(
             name = title,
