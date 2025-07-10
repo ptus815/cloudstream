@@ -36,7 +36,7 @@ override suspend fun getMainPage(
         val url = if(page == 1) "$mainUrl/${request.data}/" else "$mainUrl/${request.data}/page/$page/"
         val document = app.get(url).document
         val home =
-            document.select("div.items.normal article, div#archive-content article, div.items.full article").mapNotNull {
+            document.select("div.thumb-block, div.videos-list, div.items.full article").mapNotNull {
                 it.toSearchResult()
             }
         return newHomePageResponse(request.name, home)
@@ -63,9 +63,9 @@ override suspend fun getMainPage(
     }
 
     private fun Element.toSearchResult(): SearchResponse? {
-        val title = this.selectFirst("h3 > a")?.text() ?: return null
-        val href = getProperLink(fixUrl(this.selectFirst("h3 > a")!!.attr("href")))
-        var posterUrl = this.select("div.poster img").last()?.getImageAttr()
+        val title = this.selectFirst(".entry-header .video-title")?.text() ?: return null
+        val href = getProperLink(fixUrl(this.selectFirst(".entry-header .video-title")!!.attr("href")))
+        var posterUrl = this.select("img src").last()?.getImageAttr()
         if (posterUrl != null) {
             if (posterUrl.contains(".gif")) {
                 posterUrl = fixUrlNull(this.select("div.poster img").attr("data-wpfc-original-src"))
