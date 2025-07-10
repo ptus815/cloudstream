@@ -18,7 +18,6 @@ class Nurgay : MainAPI() {
     override var name = "Nurgay"
     override val hasMainPage = true
     override val hasDownloadSupport = true
-    override val lang = "de"
     override val supportedTypes = setOf(TvType.NSFW)
 
     override val mainPage = mainPageOf(
