@@ -69,19 +69,29 @@ class Nurgay : MainAPI() {
         )
     }
 
-    override suspend fun loadLinks(
-        data: String,
-        isCasting: Boolean,
-        subtitleCallback: (SubtitleFile) -> Unit,
-        callback: (ExtractorLink) -> Unit
-    ): Boolean {
-        callback(
-            newExtractorLink(
-                source = name,
-                name = "Nurgay",
-                url = data
+override suspend fun loadLinks(data: String, isCasting: Boolean, subtitleCallback: (SubtitleFile) -> Unit, callback: (ExtractorLink) -> Unit): Boolean {
+        val document = app.get(data).document
+
+        document.select("button.button_choice_server").amap {
+            val onclick = it.attr("onclick")
+            val regex = Regex("playEmbed\\(event,'(https://[^']+)'")
+            val url = regex.find(onclick)?.groupValues?.get(1) ?: return@amap
+            loadExtractor(
+                url,
+                data,
+                subtitleCallback,
+                callback
             )
-        )
+        }
+
+        document.select(".tabcontent > iframe").amap {
+            loadExtractor(
+                it.attr("data-litespeed-src"),
+                referer = data,
+                subtitleCallback,
+                callback
+            )
+        }
         return true
     }
 }
