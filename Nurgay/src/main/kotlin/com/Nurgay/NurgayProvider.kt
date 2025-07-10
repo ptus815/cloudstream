@@ -1,17 +1,20 @@
 package com.Nurgay
 
+import android.content.Context
+import com.lagradost.cloudstream3.extractors.VidHidePro3
 import com.lagradost.cloudstream3.plugins.CloudstreamPlugin
 import com.lagradost.cloudstream3.plugins.Plugin
-import android.content.Context
 
 @CloudstreamPlugin
-class NurgayProvider : Plugin() {
+class TollyProProvider: Plugin() {
     override fun load(context: Context) {
-        registerMainAPI(Nurgay())
-        registerExtractorAPI(Dooodster())
+        registerMainAPI(TollyPro())
+        registerExtractorAPI(Ds2play())
+        registerExtractorAPI(Vidsp())
+        registerExtractorAPI(VidHidePro3())
+        registerExtractorAPI(VidHideplus())
+        registerExtractorAPI(VidHidedht())
+        registerExtractorAPI(Vidhidehub())
         registerExtractorAPI(Bigwarp())
-        registerExtractorAPI(Listeamed())
-        registerExtractorAPI(Beamed())
-        registerExtractorAPI(StreamTapeto())
     }
 }
