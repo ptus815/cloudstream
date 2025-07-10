@@ -6,9 +6,9 @@ import com.lagradost.cloudstream3.plugins.CloudstreamPlugin
 import com.lagradost.cloudstream3.plugins.Plugin
 
 @CloudstreamPlugin
-class TollyProProvider: Plugin() {
+class NurgayProvider: Plugin() {
     override fun load(context: Context) {
-        registerMainAPI(TollyPro())
+        registerMainAPI(Nurgay())
         registerExtractorAPI(Ds2play())
         registerExtractorAPI(Vidsp())
         registerExtractorAPI(VidHidePro3())
