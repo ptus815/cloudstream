@@ -5,11 +5,11 @@ import com.lagradost.cloudstream3.plugins.Plugin
 import android.content.Context
 
 @CloudstreamPlugin
-class NurgayProvider: Plugin() {
+class NurgayProvider : Plugin() {
     override fun load(context: Context) {
         registerMainAPI(Nurgay())
         registerExtractorAPI(Dooodster())
-        registerExtractorAPI(BigwarpIO())
+        registerExtractorAPI(Bigwarp())
         registerExtractorAPI(Listeamed())
         registerExtractorAPI(Beamed())
         registerExtractorAPI(StreamTapeto())
