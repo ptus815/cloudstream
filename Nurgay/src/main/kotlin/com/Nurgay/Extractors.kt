@@ -42,7 +42,7 @@ open class BigwarpIO : ExtractorApi() {
         subtitleCallback: (SubtitleFile) -> Unit,
         callback: (ExtractorLink) -> Unit
     ) {
-        Log.d("Phisher","I'm Here")
+        Log.d("Tuangayxx","I'm Here")
 
         val resp = app.get(url).text
         Log.d("Tuangayxx",resp)
