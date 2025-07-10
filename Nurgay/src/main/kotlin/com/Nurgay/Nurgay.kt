@@ -37,7 +37,7 @@ class Nurgay : MainAPI() {
         val aTag = selectFirst("a") ?: return null
         val href = fixUrl(aTag.attr("href"))
         val title = aTag.selectFirst("title")?.text()?.trim() ?: return null
-        val image = aTag.selectFirst("video-img")?.attr("src") ?: return null
+        val image = aTag.selectFirst("img")?.attr("data-src") ?: return null
 
         return MovieSearchResponse(
             name = title,
