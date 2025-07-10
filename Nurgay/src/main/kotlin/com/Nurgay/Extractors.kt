@@ -24,10 +24,6 @@ class Beamed : Vidguardto() {
     override var mainUrl = "https://bembed.net"
 }
 
-class MixDropAG : MixDrop(){
-    override var mainUrl = "https://mixdrop.ag"
-}
-
 class StreamTapeto : StreamTape() {
     override var mainUrl = "https://streamtape.to"
 }
@@ -49,7 +45,7 @@ open class BigwarpIO : ExtractorApi() {
         Log.d("Phisher","I'm Here")
 
         val resp = app.get(url).text
-        Log.d("Phisher",resp)
+        Log.d("Tuangayxx",resp)
         for (sourceMatch in sourceRegex.findAll(resp)) {
             val label = sourceMatch.groupValues[2]
 
