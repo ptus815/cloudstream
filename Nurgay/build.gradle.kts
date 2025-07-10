@@ -2,7 +2,7 @@ version = 1
 
 cloudstream {
     authors     = listOf("GayXXX")
-    language    = "en"
+    language    = "de"
     description = "Nurgay"
 
     /**
