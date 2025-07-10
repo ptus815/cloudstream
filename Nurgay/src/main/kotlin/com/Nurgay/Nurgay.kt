@@ -59,42 +59,52 @@ class Nurgay : MainAPI() {
         return doc.select("div.thumb-block").mapNotNull { it.toSearchResult() }
     }
 
-    override suspend fun load(url: String): LoadResponse? {
-        val doc = app.get(url).document
-        val name = doc.selectFirst("meta[property=og:title]")?.attr("content") ?: return null
-        val videoUrl = doc.selectFirst("video#myvideo")?.attr("src") ?: return null
-        val posterUrl = doc.selectFirst("meta[property=og:image]")?.attr("content")
-        val description = doc.selectFirst("meta[property=og:description]")?.attr("content").orEmpty()
+    override suspend fun load(url: String): LoadResponse {
+        val request = app.get(url)
+        val document = request.document
+        val title =
+            document.selectFirst("div.data > h1")?.text()?.trim().toString()
+        var posterUrl = fixUrlNull(document.selectFirst("meta[property=og:image]")?.attr("content"))
+        if (posterUrl.isNullOrEmpty()) {
+                posterUrl = fixUrlNull(document.select("div.poster img").attr("src"))
+        }
+        val description = document.select("div.wp-content > p").text().trim()
+            val episodes =
+                document.select("ul#playeroptionsul > li").map {
+                    val name = it.selectFirst("span.title")?.text()
+                    val type = it.attr("data-type")
+                    val post = it.attr("data-post")
+                    val nume = it.attr("data-nume")
+                    Episode(
+                        LinkData(type, post,nume).toJson(),
+                        name,
+                    )
+                }
 
-        return MovieLoadResponse(
-            name = name,
-            url = url,
-            apiName = this.name,
-            type = TvType.NSFW,
-            dataUrl = videoUrl,
-            posterUrl = posterUrl,
-            plot = description
-        )
-    }
+            return newTvSeriesLoadResponse(title, url, TvType.TvSeries, episodes) {
+                this.posterUrl = posterUrl
+                this.plot = description
+            }
+        }
 
-override suspend fun loadLinks(
+
+    override suspend fun loadLinks(
         data: String,
         isCasting: Boolean,
         subtitleCallback: (SubtitleFile) -> Unit,
         callback: (ExtractorLink) -> Unit
-    ): Boolean = coroutineScope {
-        val parsedList = data.fromJson<List<String>>()
-        parsedList.map { url ->
-            launch {
-                Log.d("Tuangay", url)
-                loadExtractor(url, "$mainUrl/", subtitleCallback, callback)
-            }
-        }.joinAll()
-
-        true
-    }
-
-    val gson = Gson()
-    private inline fun <reified T> String.fromJson(): T = gson.fromJson(this, object : TypeToken<T>() {}.type)
-}
-
+    ): Boolean {
+            val loadData = tryParseJson<LinkData>(data)
+            val source = app.post(
+                url = "$mainUrl/wp-admin/admin-ajax.php", data = mapOf(
+                    "action" to "doo_player_ajax", "post" to "${loadData?.post}", "nume" to "${loadData?.nume}", "type" to "${loadData?.type}"
+                ), referer = data, headers = mapOf("Accept" to "*/*", "X-Requested-With" to "XMLHttpRequest"
+                )).parsed<ResponseHash>().embed_url.getIframe()
+            if (!source.contains("youtube")) loadExtractor(
+                source,
+                "$directUrl/",
+                subtitleCallback,
+                callback
+            )
+        return true
+        }
