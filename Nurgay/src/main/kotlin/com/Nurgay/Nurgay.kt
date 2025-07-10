@@ -15,7 +15,7 @@ class Nurgay : MainAPI() {
     override val vpnStatus            = VPNStatus.MightBeNeeded
 
     override val mainPage = mainPageOf(
-        "/?filter=latest" to "Lates",
+        "/?filter=latest" to "Latest",
         "/?filter=random" to "Random",
         "/?filter=longest" to "Longest",
         "/?filter=most-viewed" to "Most Viewed",
@@ -36,8 +36,8 @@ class Nurgay : MainAPI() {
       private fun Element.toSearchResult(): SearchResponse? {
         val aTag = selectFirst("a") ?: return null
         val href = fixUrl(aTag.attr("href"))
-        val title = aTag.selectFirst("title")?.text()?.trim() ?: return null
-        val image = aTag.selectFirst("img")?.attr("data-src") ?: return null
+        val title = aTag.selectFirst(".entry-header .video-title")?.text()?.trim() ?: return null
+        val image = aTag.selectFirst("img")?.attr("src") ?: return null
 
         return MovieSearchResponse(
             name = title,
