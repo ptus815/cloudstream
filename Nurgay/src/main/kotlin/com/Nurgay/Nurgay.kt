@@ -36,42 +36,25 @@ override suspend fun getMainPage(
         val url = if(page == 1) "$mainUrl/${request.data}/" else "$mainUrl/${request.data}/page/$page/"
         val document = app.get(url).document
         val home =
-            document.select("div.thumb-block, div.videos-list, div.items.full article").mapNotNull {
+            document.select("div.post-thumbnail-container").mapNotNull {
                 it.toSearchResult()
             }
         return newHomePageResponse(request.name, home)
     }
 
-    private fun getProperLink(uri: String): String {
-        return when {
-            uri.contains("/episodes/") -> {
-                var title = uri.substringAfter("$mainUrl/episodes/")
-                title = Regex("(.+?)-season").find(title)?.groupValues?.get(1).toString()
-                "$mainUrl/tvshows/$title"
-            }
-
-            uri.contains("/seasons/") -> {
-                var title = uri.substringAfter("$mainUrl/seasons/")
-                title = Regex("(.+?)-season").find(title)?.groupValues?.get(1).toString()
-                "$mainUrl/tvshows/$title"
-            }
-
-            else -> {
-                uri
-            }
-        }
-    }
+    
 
     private fun Element.toSearchResult(): SearchResponse? {
-        val title = this.selectFirst(".entry-header .video-title")?.text() ?: return null
-        val href = getProperLink(fixUrl(this.selectFirst(".entry-header .video-title")!!.attr("href")))
-        var posterUrl = this.select("img src").last()?.getImageAttr()
+        val titleElement = this.selectFirst(".entry-header .video-title")
+        val title = titleElement?.text() ?: return null
+        val href = getProperLink(fixUrl(titleElement?.attr("href") ?: return null))
+        var posterUrl = this.select("img").last()?.getImageAttr()
         if (posterUrl != null) {
             if (posterUrl.contains(".gif")) {
                 posterUrl = fixUrlNull(this.select("div.poster img").attr("data-wpfc-original-src"))
             }
         }
-        val quality = getQualityFromString(this.select("span.quality").text())
+        val quality = getQualityFromString(this.select("span.quality").text()) ?: "")
         return newMovieSearchResponse(title, href, TvType.Movie) {
             this.posterUrl = posterUrl
             this.quality = quality
@@ -82,9 +65,9 @@ override suspend fun getMainPage(
     override suspend fun search(query: String): List<SearchResponse> {
         val document = app.get("$mainUrl/search/$query").document
         return document.select("div.result-item").map {
-            val title =
-                it.selectFirst("div.title > a")!!.text().replace(Regex("\\(\\d{4}\\)"), "").trim()
-            val href = getProperLink(it.selectFirst("div.title > a")!!.attr("href"))
+            val titleElement = it.selectFirst("div.title > a")
+            val title = titleElement?.text()?.replace(Regex("\\(\\d{4}\\)"), "")?.trim()
+            val href = getProperLink(fixUrl(titleElement?.attr("href")
             val posterUrl = it.selectFirst("img")!!.attr("src")
             newMovieSearchResponse(title, href, TvType.TvSeries) {
                 this.posterUrl = posterUrl
