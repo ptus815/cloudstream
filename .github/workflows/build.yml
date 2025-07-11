@@ -47,12 +47,3 @@ jobs:
     
     # Copy tất cả file plugins.json
     find . -name "plugins.json" -exec cp --parents {} $GITHUB_WORKSPACE/builds \;
-
-- name: Verify files
-  run: |
-    echo "All files in builds directory:"
-    find $GITHUB_WORKSPACE/builds -type f
-    echo "Git status in builds directory:"
-    cd $GITHUB_WORKSPACE/builds
-    git status
-    git ls-files
