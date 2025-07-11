@@ -26,7 +26,8 @@ class Fxggxt : MainAPI() {
         "$mainUrl/tag/interracial-gay-porn/" to "Interracial",
         "$mainUrl/tag/muscle-gay-porn/" to "Muscle",
         "$mainUrl/tag/straight-guys-gay-porn/" to "Straight",
-        "$mainUrl/tag/twink-gay-porn/" to "Twink"
+        "$mainUrl/tag/twink-gay-porn/" to "Twink",
+        "$mainUrl/category/asgmax/" to "ASGmax",
     )
 
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
