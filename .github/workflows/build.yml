@@ -37,13 +37,9 @@ jobs:
         uses: android-actions/setup-android@v3.2.2
 
       - name: Build Plugins
-  run: |
-    cd $GITHUB_WORKSPACE/src
-    chmod +x gradlew
-    ./gradlew make makePluginsJson --info --console=verbose
-    
-    # Copy tất cả file .cs3
-    find . -name "*.cs3" -exec cp --parents {} $GITHUB_WORKSPACE/builds \;
-    
-    # Copy tất cả file plugins.json
-    find . -name "plugins.json" -exec cp --parents {} $GITHUB_WORKSPACE/builds \;
+          run: |
+      cd $GITHUB_WORKSPACE/src
+      chmod +x gradlew
+      ./gradlew make makePluginsJson --info --console=verbose
+      find . -name "*.cs3" -exec cp --parents {} $GITHUB_WORKSPACE/builds \;
+      find . -name "plugins.json" -exec cp --parents {} $GITHUB_WORKSPACE/builds \;
