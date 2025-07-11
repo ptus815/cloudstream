@@ -37,29 +37,22 @@ jobs:
         uses: android-actions/setup-android@v3.2.2
 
       - name: Build Plugins
-        run: |
-          cd $GITHUB_WORKSPACE/src
-          chmod +x gradlew
-          ./gradlew make makePluginsJson
-          
-          # Sửa lỗi copy file
-          find . -name "*.cs3" -exec cp {} $GITHUB_WORKSPACE/builds \;
-          
-          # Copy an toàn plugins.json
-          [ -f build/plugins.json ] && cp build/plugins.json $GITHUB_WORKSPACE/builds
+  run: |
+    cd $GITHUB_WORKSPACE/src
+    chmod +x gradlew
+    ./gradlew make makePluginsJson --info --console=verbose
+    
+    # Copy tất cả file .cs3
+    find . -name "*.cs3" -exec cp --parents {} $GITHUB_WORKSPACE/builds \;
+    
+    # Copy tất cả file plugins.json
+    find . -name "plugins.json" -exec cp --parents {} $GITHUB_WORKSPACE/builds \;
 
-      - name: Push builds
-        run: |
-          cd $GITHUB_WORKSPACE/builds
-          git config user.email "actions@github.com"
-          git config user.name "GitHub Actions"
-          
-          git add .
-          
-          # Chỉ commit nếu có thay đổi
-          if git diff-index --quiet HEAD; then
-            echo "No changes to commit"
-          else
-            git commit -m "Build ${GITHUB_SHA:0:7} - $(date +'%Y-%m-%d %H:%M')"
-            git push origin builds --force
-          fi
+- name: Verify files
+  run: |
+    echo "All files in builds directory:"
+    find $GITHUB_WORKSPACE/builds -type f
+    echo "Git status in builds directory:"
+    cd $GITHUB_WORKSPACE/builds
+    git status
+    git ls-files
