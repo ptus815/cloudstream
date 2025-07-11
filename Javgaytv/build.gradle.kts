@@ -1,12 +1,12 @@
 // use an integer for version numbers
-version = 4
+version = 1
 
 cloudstream {
     // All of these properties are optional, you can safely remove them
 
-    description = "Whoreshub"
+    description = "Jayboystv"
     language    = "en"
-    authors = listOf("megix")
+    authors = listOf("GayXXX")
 
     /**
     * Status int as the following:
@@ -21,5 +21,5 @@ cloudstream {
     // You can find a list of avaliable types here:
     // https://recloudstream.github.io/cloudstream/html/app/com.lagradost.cloudstream3/-tv-type/index.html
     tvTypes = listOf("NSFW")
-    iconUrl = "https://findbestporno.com/public/uploads/image/2021/8/WhoresHub.jpg"
+    iconUrl = "https://www.javboys.tv/wp-content/uploads/2025/07/43567.webp"
 }
