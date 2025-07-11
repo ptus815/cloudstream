@@ -5,7 +5,7 @@ import com.lagradost.cloudstream3.utils.*
 import com.lagradost.cloudstream3.LoadResponse.Companion.addActors
 import org.jsoup.nodes.Element
 
-class NetflavProvider : MainAPI() {
+class JayboystvProvider : MainAPI() {
     override var mainUrl = "https://jayboys.tv"
     override var name = "Jayboystv"
     override val hasMainPage = true
