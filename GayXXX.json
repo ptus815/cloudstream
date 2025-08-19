@@ -3,6 +3,6 @@
   "description": "This Repo Contains NSFW Content!",
   "manifestVersion": 1,
   "pluginLists": [
-    "https://raw.githubusercontent.com/Tuangayxx/GayXXX/builds/plugins.json"
+    "https://raw.githubusercontent.com/Tuangayxx/TestPlugins/refs/heads/builds/plugins.json"
   ]
 }
