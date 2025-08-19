@@ -1,0 +1,8 @@
+{
+    "name": "NSFW Providers",
+    "description": "For the coomers and degenerates",
+    "manifestVersion": 1,
+    "pluginLists": [
+        "https://raw.githubusercontent.com/ptus815/cloudstream/refs/heads/master/plugin3x.json"
+    ]
+}
